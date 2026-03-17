@@ -1,6 +1,5 @@
-# app/app_controller.py
-from core.circuit import Circuit
-from commands.history import CommandHistory, AddNodeCommand, ConnectCommand
+from frontend.core.circuit import Circuit
+from frontend.commands.history import CommandHistory, AddNodeCommand, ConnectCommand
 
 class AppController:
     def __init__(self):

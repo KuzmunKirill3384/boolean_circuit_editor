@@ -1,12 +1,12 @@
-# app/main_window.py
 from PyQt6.QtWidgets import (
-    QMainWindow, QMenuBar, QMenu, QAction, QToolBar, QFileDialog,
+    QMainWindow, QMenuBar, QMenu, QToolBar, QFileDialog,
     QDockWidget, QApplication, QLabel, QWidget, QVBoxLayout
 )
+from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
-from app.app_controller import AppController
-from canvas.scene import CircuitScene
-from canvas.view import CircuitView
+from frontend.app.app_controller import AppController
+from frontend.canvas.scene import CircuitScene
+from frontend.canvas.view import CircuitView
 import sys
 
 class MainWindow(QMainWindow):
