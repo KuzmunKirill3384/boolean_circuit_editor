@@ -68,9 +68,19 @@ class MainWindow(QMainWindow):
             action.triggered.connect(lambda checked, g=gate: self.select_gate(g))
             toolbar.addAction(action)
 
+        connect_action = QAction("Связь", self)
+        connect_action.setCheckable(True)
+        connect_action.triggered.connect(self.set_connect_mode)
+        toolbar.addAction(connect_action)
+
     def select_gate(self, gate_type):
         self.scene.set_selected_gate(gate_type)
+        self.scene.mode = "add"
         print("Выбран узел:", gate_type)
+
+    def set_connect_mode(self, checked=False):
+        self.scene.set_connect_mode()
+        print("Режим связи включен")
 
 
     def init_central(self):

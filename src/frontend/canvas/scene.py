@@ -69,12 +69,20 @@ class CircuitScene(QGraphicsScene):
         super().__init__()
         self.controller = controller
         self.selected_gate = None
+        self.mode = "add"
+        self.connect_source_id = None
         self.setSceneRect(0, 0, 1000, 600)
         self.nodes = {}
         self.lines = []
 
     def set_selected_gate(self, gate_type):
         self.selected_gate = gate_type
+        self.mode = "add"
+        self.connect_source_id = None
+
+    def set_connect_mode(self):
+        self.mode = "connect"
+        self.connect_source_id = None
 
     def sync_scene(self):
         self.clear()
@@ -100,9 +108,56 @@ class CircuitScene(QGraphicsScene):
         for line in self.lines:
             line.update_line()
 
-    def mouseDoubleClickEvent(self, event):
-        if self.selected_gate:
-            pos = event.scenePos()
-            self.controller.add_node(self.selected_gate, pos.x(), pos.y())
+    def validate_connection(self, out_id, in_id):
+        if out_id == in_id:
+            return False, "Нельзя соединить узел сам с собой"
+        if not self.controller.circuit.get_node(out_id) or not self.controller.circuit.get_node(in_id):
+            return False, "Узел не найден"
+        if (out_id, in_id) in self.controller.circuit.get_connections():
+            return False, "Соединение уже существует"
+        return True, "OK"
+
+    def mousePressEvent(self, event):
+        if event.button() != Qt.MouseButton.LeftButton:
+            super().mousePressEvent(event)
+            return
+
+        scene_pos = event.scenePos()
+        clicked_items = self.items(scene_pos)
+        clicked_node = None
+        for item in clicked_items:
+            if isinstance(item, NodeItem):
+                clicked_node = item
+                break
+
+        if self.mode == "add" and self.selected_gate and clicked_node is None:
+            node_id = self.controller.add_node(self.selected_gate, scene_pos.x(), scene_pos.y())
+            print(f"Добавлен узел {self.selected_gate} id={node_id} в {scene_pos.x():.1f},{scene_pos.y():.1f}")
             self.sync_scene()
+            return
+
+        if self.mode == "connect":
+            if clicked_node is None:
+                super().mousePressEvent(event)
+                return
+            if self.connect_source_id is None:
+                self.connect_source_id = clicked_node.node_id
+                print(f"Режим связи: выбран исходный узел {self.connect_source_id}")
+            else:
+                dest_id = clicked_node.node_id
+                valid, reason = self.validate_connection(self.connect_source_id, dest_id)
+                if valid:
+                    from frontend.commands.history import ConnectCommand
+                    cmd = ConnectCommand(self.controller.circuit, self.connect_source_id, dest_id)
+                    self.controller.history.execute(cmd)
+                    print(f"Соединено {self.connect_source_id} -> {dest_id}")
+                    self.sync_scene()
+                else:
+                    print("Ошибка валидации связи:", reason)
+                self.connect_source_id = None
+            return
+
+        super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
         super().mouseDoubleClickEvent(event)
