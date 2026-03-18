@@ -11,14 +11,14 @@ class AppController:
         self.history.execute(cmd)
 
     def move_node(self, node_id, new_x, new_y):
-        pass
+        self.circuit.set_node_position(node_id, new_x, new_y)
 
     def connect_nodes(self, out_node_id, in_node_id):
         cmd = ConnectCommand(self.circuit, out_node_id, in_node_id)
         self.history.execute(cmd)
 
     def disconnect_nodes(self, out_node_id, in_node_id):
-        pass
+        self.circuit.disconnect_nodes(out_node_id, in_node_id)
 
     def undo(self):
         self.history.undo()

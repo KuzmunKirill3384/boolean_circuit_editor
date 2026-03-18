@@ -3,17 +3,54 @@ class Circuit:
     def __init__(self):
         self.nodes = []  # список узлов
         self.connections = []  # список соединений
-        
+        self._next_node_id = 1
+
     def add_node(self, node_type, x, y):
-        # TODO: реализовать добавление узла
-        pass
-    
+        node = {
+            "id": self._next_node_id,
+            "type": node_type,
+            "x": float(x),
+            "y": float(y)
+        }
+        self.nodes.append(node)
+        self._next_node_id += 1
+        return node["id"]
+
+    def remove_node(self, node_id):
+        self.nodes = [n for n in self.nodes if n["id"] != node_id]
+        self.connections = [c for c in self.connections if c[0] != node_id and c[1] != node_id]
+
+    def set_node_position(self, node_id, x, y):
+        for node in self.nodes:
+            if node["id"] == node_id:
+                node["x"] = float(x)
+                node["y"] = float(y)
+                return True
+        return False
+
     def connect_nodes(self, out_node_id, in_node_id):
-        # TODO: реализовать соединение узлов
-        pass
-    
+        if out_node_id == in_node_id:
+            return False
+        if not any(n["id"] == out_node_id for n in self.nodes):
+            return False
+        if not any(n["id"] == in_node_id for n in self.nodes):
+            return False
+        if (out_node_id, in_node_id) in self.connections:
+            return False
+        self.connections.append((out_node_id, in_node_id))
+        return True
+
+    def disconnect_nodes(self, out_node_id, in_node_id):
+        self.connections = [c for c in self.connections if c != (out_node_id, in_node_id)]
+
+    def get_node(self, node_id):
+        for node in self.nodes:
+            if node["id"] == node_id:
+                return node
+        return None
+
     def get_nodes(self):
         return self.nodes
-    
+
     def get_connections(self):
         return self.connections

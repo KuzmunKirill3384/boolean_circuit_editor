@@ -69,6 +69,7 @@ class MainWindow(QMainWindow):
             toolbar.addAction(action)
 
     def select_gate(self, gate_type):
+        self.scene.set_selected_gate(gate_type)
         print("Выбран узел:", gate_type)
 
 
