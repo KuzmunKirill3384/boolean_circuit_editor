@@ -42,8 +42,8 @@ class MainWindow(QMainWindow):
         edit_menu = menu_bar.addMenu("Правка")
         undo_action = QAction("Отмена", self)
         redo_action = QAction("Повтор", self)
-        undo_action.triggered.connect(self.controller.undo)
-        redo_action.triggered.connect(self.controller.redo)
+        undo_action.triggered.connect(lambda: [self.controller.undo(), self.scene.sync_scene()])
+        redo_action.triggered.connect(lambda: [self.controller.redo(), self.scene.sync_scene()])
         edit_menu.addAction(undo_action)
         edit_menu.addAction(redo_action)
 
@@ -73,14 +73,25 @@ class MainWindow(QMainWindow):
         connect_action.triggered.connect(self.set_connect_mode)
         toolbar.addAction(connect_action)
 
+        disconnect_action = QAction("Отключить", self)
+        disconnect_action.setCheckable(True)
+        disconnect_action.triggered.connect(self.set_disconnect_mode)
+        toolbar.addAction(disconnect_action)
+
     def select_gate(self, gate_type):
         self.scene.set_selected_gate(gate_type)
         self.scene.mode = "add"
         print("Выбран узел:", gate_type)
 
     def set_connect_mode(self, checked=False):
-        self.scene.set_connect_mode()
+        self.scene.mode = "connect"
+        self.scene.connect_source_id = None
         print("Режим связи включен")
+
+    def set_disconnect_mode(self, checked=False):
+        self.scene.mode = "disconnect"
+        self.scene.connect_source_id = None
+        print("Режим отключения включен")
 
 
     def init_central(self):

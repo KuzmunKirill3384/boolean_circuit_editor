@@ -1,5 +1,12 @@
 from frontend.core.circuit import Circuit
-from frontend.commands.history import CommandHistory, AddNodeCommand, ConnectCommand
+from frontend.commands.history import (
+    CommandHistory,
+    AddNodeCommand,
+    RemoveNodeCommand,
+    MoveNodeCommand,
+    ConnectCommand,
+    DisconnectCommand,
+)
 
 class AppController:
     def __init__(self):
@@ -9,16 +16,25 @@ class AppController:
     def add_node(self, node_type, x, y):
         cmd = AddNodeCommand(self.circuit, node_type, x, y)
         self.history.execute(cmd)
+        return cmd.node_id
 
-    def move_node(self, node_id, new_x, new_y):
-        self.circuit.set_node_position(node_id, new_x, new_y)
+    def remove_node(self, node_id):
+        cmd = RemoveNodeCommand(self.circuit, node_id)
+        self.history.execute(cmd)
+
+    def move_node(self, node_id, old_x, old_y, new_x, new_y):
+        if old_x == new_x and old_y == new_y:
+            return
+        cmd = MoveNodeCommand(self.circuit, node_id, old_x, old_y, new_x, new_y)
+        self.history.execute(cmd)
 
     def connect_nodes(self, out_node_id, in_node_id):
         cmd = ConnectCommand(self.circuit, out_node_id, in_node_id)
         self.history.execute(cmd)
 
     def disconnect_nodes(self, out_node_id, in_node_id):
-        self.circuit.disconnect_nodes(out_node_id, in_node_id)
+        cmd = DisconnectCommand(self.circuit, out_node_id, in_node_id)
+        self.history.execute(cmd)
 
     def undo(self):
         self.history.undo()

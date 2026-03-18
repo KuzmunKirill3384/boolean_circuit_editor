@@ -16,6 +16,10 @@ class Circuit:
         self._next_node_id += 1
         return node["id"]
 
+    def add_node_with_id(self, node):
+        self.nodes.append(node)
+        self._next_node_id = max(self._next_node_id, node["id"] + 1)
+
     def remove_node(self, node_id):
         self.nodes = [n for n in self.nodes if n["id"] != node_id]
         self.connections = [c for c in self.connections if c[0] != node_id and c[1] != node_id]

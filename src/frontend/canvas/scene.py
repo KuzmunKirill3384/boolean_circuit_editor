@@ -12,6 +12,7 @@ class NodeItem(QGraphicsRectItem):
         self.node_id = node["id"]
         self.node_type = node["type"]
         self.move_callback = move_callback
+        self.original_pos = (node["x"], node["y"])
         self.setFlags(
             QGraphicsRectItem.GraphicsItemFlag.ItemIsMovable
             | QGraphicsRectItem.GraphicsItemFlag.ItemSendsGeometryChanges
@@ -40,14 +41,18 @@ class NodeItem(QGraphicsRectItem):
         painter.setPen(Qt.GlobalColor.white)
         painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, f"{self.node_type}\n#{self.node_id}")
 
-    def itemChange(self, change, value):
-        if change == QGraphicsRectItem.GraphicsItemChange.ItemPositionHasChanged and self.move_callback:
-            self.move_callback(self.node_id, value.x(), value.y())
-        return super().itemChange(change, value)
+    def mousePressEvent(self, event):
+        self.original_pos = (self.x(), self.y())
+        super().mousePressEvent(event)
 
-
-from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QGraphicsLineItem
-
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if self.move_callback:
+            new_x = self.x()
+            new_y = self.y()
+            old_x, old_y = self.original_pos
+            if old_x != new_x or old_y != new_y:
+                self.move_callback(self.node_id, old_x, old_y, new_x, new_y)
 
 class ConnectionLine(QGraphicsLineItem):
     def __init__(self, from_item, to_item):
@@ -103,8 +108,8 @@ class CircuitScene(QGraphicsScene):
             self.addItem(line)
             self.lines.append(line)
 
-    def on_node_moved(self, node_id, x, y):
-        self.controller.move_node(node_id, x, y)
+    def on_node_moved(self, node_id, old_x, old_y, new_x, new_y):
+        self.controller.move_node(node_id, old_x, old_y, new_x, new_y)
         for line in self.lines:
             line.update_line()
 
@@ -147,9 +152,7 @@ class CircuitScene(QGraphicsScene):
                 dest_id = clicked_node.node_id
                 valid, reason = self.validate_connection(self.connect_source_id, dest_id)
                 if valid:
-                    from frontend.commands.history import ConnectCommand
-                    cmd = ConnectCommand(self.controller.circuit, self.connect_source_id, dest_id)
-                    self.controller.history.execute(cmd)
+                    self.controller.connect_nodes(self.connect_source_id, dest_id)
                     print(f"Соединено {self.connect_source_id} -> {dest_id}")
                     self.sync_scene()
                 else:
@@ -157,7 +160,36 @@ class CircuitScene(QGraphicsScene):
                 self.connect_source_id = None
             return
 
+        if self.mode == "disconnect":
+            if clicked_node is None:
+                super().mousePressEvent(event)
+                return
+            if self.connect_source_id is None:
+                self.connect_source_id = clicked_node.node_id
+                print(f"Режим отключения: выбран исходный узел {self.connect_source_id}")
+            else:
+                dest_id = clicked_node.node_id
+                if (self.connect_source_id, dest_id) in self.controller.circuit.get_connections():
+                    self.controller.disconnect_nodes(self.connect_source_id, dest_id)
+                    print(f"Отключено {self.connect_source_id} -> {dest_id}")
+                    self.sync_scene()
+                else:
+                    print("Связь не найдена для отключения")
+                self.connect_source_id = None
+            return
+
         super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event):
         super().mouseDoubleClickEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Delete:
+            selected_items = self.selectedItems()
+            for item in selected_items:
+                if isinstance(item, NodeItem):
+                    self.controller.remove_node(item.node_id)
+                    print(f"Узел {item.node_id} удален")
+            self.sync_scene()
+            return
+        super().keyPressEvent(event)
