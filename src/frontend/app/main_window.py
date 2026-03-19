@@ -9,9 +9,6 @@ from PyQt6.QtCore import Qt
 from frontend.app.app_controller import AppController
 from frontend.canvas.scene import CircuitScene
 from frontend.canvas.view import CircuitView
-from backend.logic.truth_table import (
-    get_truth_table, get_truth_table_for_node, get_affected_nodes
-)
 import sys
 
 class MainWindow(QMainWindow):
@@ -123,6 +120,11 @@ class MainWindow(QMainWindow):
         self.truth_table_info = QLabel("Выберите режим и узел")
         dock_layout.addWidget(self.truth_table_info)
 
+        self.polynomial_label = QLabel("Полином: не выбран узел")
+        self.polynomial_label.setWordWrap(True)
+        self.polynomial_label.hide()
+        dock_layout.addWidget(self.polynomial_label)
+
         self.truth_table_table = QTableWidget()
         dock_layout.addWidget(self.truth_table_table)
 
@@ -156,6 +158,7 @@ class MainWindow(QMainWindow):
 
         self.truth_table_action.toggled.connect(self.truth_table_dock.setVisible)
         self.truth_table_action.toggled.connect(lambda visible: self.update_truth_table_panel())
+        self.polynomial_action.toggled.connect(self.on_polynomial_toggled)
         self.truth_table_mode.currentIndexChanged.connect(self.update_truth_table_panel)
         self.refresh_truth_table_button.clicked.connect(self.update_truth_table_panel)
 
@@ -173,6 +176,44 @@ class MainWindow(QMainWindow):
         else:
             self.selected_node_id = None
         self.update_truth_table_panel()
+        self.update_polynomial_display()
+
+    def update_polynomial_display(self):
+        if not self.polynomial_action.isChecked():
+            self.polynomial_label.hide()
+            return
+
+        if self.selected_node_id is None:
+            polynomials = self.controller.get_polynomials()
+            text = "Полиномы схемы: "
+            if isinstance(polynomials, str):
+                text += polynomials
+            elif isinstance(polynomials, dict):
+                text += str(polynomials)
+            elif polynomials is None:
+                text += "не найдены"
+            else:
+                text += str(polynomials)
+            self.polynomial_label.setText(text)
+            self.polynomial_label.show()
+            return
+
+        poly = self.controller.get_polynomial_for_node(self.selected_node_id)
+        if isinstance(poly, str):
+            text = f"Полином узла #{self.selected_node_id}: {poly}"
+        elif isinstance(poly, dict):
+            text = f"Полином узла #{self.selected_node_id}: {poly}"
+        elif poly is None:
+            text = f"Полином узла #{self.selected_node_id}: не определен"
+        else:
+            text = f"Полином узла #{self.selected_node_id}: {poly}"
+        self.polynomial_label.setText(text)
+        self.polynomial_label.show()
+
+    def on_polynomial_toggled(self, checked):
+        self.polynomial_label.setVisible(checked)
+        if checked:
+            self.update_polynomial_display()
 
     def update_truth_table_panel(self):
         if not self.truth_table_action.isChecked():
@@ -180,15 +221,15 @@ class MainWindow(QMainWindow):
 
         mode = self.truth_table_mode.currentText()
         if mode == "Схема":
-            table = get_truth_table(self.controller.circuit)
-            if not table["inputs"] and not table["outputs"]:
+            table = self.controller.get_truth_table()
+            if not table.get("inputs") and not table.get("outputs"):
                 self.truth_table_info.setText("Схема не содержит входов и/или выходов")
                 self.truth_table_table.clear()
                 self.scene.clear_highlights()
                 return
             self.truth_table_info.setText("Таблица истинности для всей схемы")
-            headers = [f"IN_{nid}" for nid in table["inputs"]] + [f"OUT_{nid}" for nid in table["outputs"]]
-            self._fill_truth_table(headers, table["rows"])
+            headers = [f"IN_{nid}" for nid in table.get("inputs", [])] + [f"OUT_{nid}" for nid in table.get("outputs", [])]
+            self._fill_truth_table(headers, table.get("rows", []))
             self.scene.clear_highlights()
         else:
             if self.selected_node_id is None:
@@ -196,12 +237,15 @@ class MainWindow(QMainWindow):
                 self.truth_table_table.clear()
                 self.scene.clear_highlights()
                 return
-            table = get_truth_table_for_node(self.controller.circuit, self.selected_node_id)
-            headers = [f"IN_{nid}" for nid in table["inputs"]] + [f"Node_{table['node_id']}"]
+            table = self.controller.get_truth_table_for_node(self.selected_node_id)
+            inputs = table.get("inputs", []) if isinstance(table, dict) else []
+            node_id = table.get("node_id", self.selected_node_id) if isinstance(table, dict) else self.selected_node_id
+            headers = [f"IN_{nid}" for nid in inputs] + [f"Node_{node_id}"]
             self.truth_table_info.setText(f"Таблица истинности узла #{self.selected_node_id}")
-            self._fill_truth_table(headers, table["rows"])
-            affected = get_affected_nodes(self.controller.circuit, self.selected_node_id)
+            self._fill_truth_table(headers, table.get("rows", []) if isinstance(table, dict) else [])
+            affected = self.controller.get_affected_nodes(self.selected_node_id)
             self.scene.highlight_nodes(affected + [self.selected_node_id])
+        self.update_polynomial_display()
 
     def _fill_truth_table(self, headers, rows):
         self.truth_table_table.clear()

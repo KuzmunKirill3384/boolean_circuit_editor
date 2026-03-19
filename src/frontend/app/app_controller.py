@@ -58,22 +58,60 @@ class AppController:
             print("Ошибка при загрузке:", e)
 
     def get_truth_table(self):
-        from backend.logic.truth_table import get_truth_table
-        return get_truth_table(self.circuit)
+        try:
+            from backend.logic.truth_table import get_truth_table
+            return get_truth_table(self.circuit)
+        except Exception:
+            return {"inputs": [], "outputs": [], "rows": []}
 
     def get_truth_table_for_node(self, node_id):
-        from backend.logic.truth_table import get_truth_table_for_node
-        return get_truth_table_for_node(self.circuit, node_id)
+        try:
+            from backend.logic.truth_table import get_truth_table_for_node
+            try:
+                return get_truth_table_for_node(self.circuit, node_id)
+            except TypeError:
+                return get_truth_table_for_node(node_id)
+        except Exception:
+            return {"inputs": [], "node_id": node_id, "rows": []}
 
     def get_affected_nodes(self, node_id):
-        from backend.logic.truth_table import get_affected_nodes
-        return get_affected_nodes(self.circuit, node_id)
+        try:
+            from backend.logic.truth_table import get_affected_nodes
+            try:
+                return get_affected_nodes(self.circuit, node_id)
+            except TypeError:
+                return get_affected_nodes(node_id)
+        except Exception:
+            return []
+
+    def get_polynomials(self):
+        try:
+            from backend.logic.truth_table import get_polynomials
+            return get_polynomials(self.circuit)
+        except Exception:
+            return None
+
+    def get_polynomial_for_node(self, node_id):
+        try:
+            from backend.logic.truth_table import get_polynomial_for_node
+            try:
+                return get_polynomial_for_node(self.circuit, node_id)
+            except TypeError:
+                return get_polynomial_for_node(node_id)
+        except Exception:
+            return None
 
     def get_removable_count_per_input(self, input_values):
-        from backend.logic.truth_table import get_removable_count_per_input
-        return get_removable_count_per_input(self.circuit, input_values)
+        try:
+            from backend.logic.truth_table import get_removable_count_per_input
+            return get_removable_count_per_input(self.circuit, input_values)
+        except Exception:
+            return {}
 
     def simplify_circuit(self, input_values):
-        from backend.logic.truth_table import simplify
-        self.circuit = simplify(self.circuit, input_values)
-        self.history.clear()
+        try:
+            from backend.logic.truth_table import simplify
+            self.circuit = simplify(self.circuit, input_values)
+            self.history.clear()
+        except Exception:
+            pass
