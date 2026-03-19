@@ -12,6 +12,7 @@ class NodeItem(QGraphicsRectItem):
         self.node_id = node["id"]
         self.node_type = node["type"]
         self.move_callback = move_callback
+        self.highlight_status = "default"
         self.original_pos = (node["x"], node["y"])
         self.setFlags(
             QGraphicsRectItem.GraphicsItemFlag.ItemIsMovable
@@ -21,6 +22,10 @@ class NodeItem(QGraphicsRectItem):
         self.setAcceptHoverEvents(True)
         self.setToolTip(f"{self.node_type} ({self.node_id})")
         self.setPos(node["x"], node["y"])
+
+    def set_highlight(self, status):
+        self.highlight_status = status
+        self.update()
 
     def paint(self, painter, option, widget=None):
         color_map = {
@@ -32,8 +37,15 @@ class NodeItem(QGraphicsRectItem):
             "OUT": QColor("#a68cfc"),
         }
         color = color_map.get(self.node_type.upper(), QColor("#999999"))
+        if self.highlight_status == "affected":
+            color = QColor("#ff8c00")
+        elif self.highlight_status == "selected":
+            color = QColor("#34c759")
         painter.setBrush(QBrush(color))
-        painter.setPen(QPen(Qt.GlobalColor.black, 2))
+        pen_color = Qt.GlobalColor.black
+        if self.isSelected():
+            pen_color = Qt.GlobalColor.red
+        painter.setPen(QPen(pen_color, 2))
         painter.drawRoundedRect(self.rect(), 8, 8)
 
         font = QFont("Arial", 9)
@@ -121,6 +133,19 @@ class CircuitScene(QGraphicsScene):
         if (out_id, in_id) in self.controller.circuit.get_connections():
             return False, "Соединение уже существует"
         return True, "OK"
+
+    def highlight_nodes(self, node_ids, selected_node_id=None):
+        selected_node_id = selected_node_id
+        for node_id, item in self.nodes.items():
+            if node_id in node_ids:
+                status = "selected" if node_id == selected_node_id else "affected"
+                item.set_highlight(status)
+            else:
+                item.set_highlight("default")
+
+    def clear_highlights(self):
+        for item in self.nodes.values():
+            item.set_highlight("default")
 
     def mousePressEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:

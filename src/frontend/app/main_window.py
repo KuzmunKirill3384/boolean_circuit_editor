@@ -1,12 +1,16 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QMenuBar, QMenu, QToolBar, QFileDialog,
-    QDockWidget, QApplication, QLabel, QWidget, QVBoxLayout
+    QDockWidget, QApplication, QLabel, QWidget, QVBoxLayout,
+    QHBoxLayout, QComboBox, QPushButton, QTableWidget, QTableWidgetItem
 )
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
 from frontend.app.app_controller import AppController
 from frontend.canvas.scene import CircuitScene
 from frontend.canvas.view import CircuitView
+from backend.logic.truth_table import (
+    get_truth_table, get_truth_table_for_node, get_affected_nodes
+)
 import sys
 
 class MainWindow(QMainWindow):
@@ -101,17 +105,90 @@ class MainWindow(QMainWindow):
 
     def init_docks(self):
         self.truth_table_dock = QDockWidget("Таблица истинности", self)
-        label = QLabel("Здесь будет таблица истинности")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
         dock_widget = QWidget()
-        layout = QVBoxLayout()
-        layout.addWidget(label)
-        dock_widget.setLayout(layout)
+        dock_layout = QVBoxLayout()
+
+        controls_layout = QHBoxLayout()
+        controls_layout.addWidget(QLabel("Режим:"))
+        self.truth_table_mode = QComboBox()
+        self.truth_table_mode.addItems(["Схема", "По элементу"])
+        controls_layout.addWidget(self.truth_table_mode)
+        controls_layout.addStretch()
+        self.refresh_truth_table_button = QPushButton("Обновить")
+        controls_layout.addWidget(self.refresh_truth_table_button)
+        dock_layout.addLayout(controls_layout)
+
+        self.truth_table_info = QLabel("Выберите режим и узел")
+        dock_layout.addWidget(self.truth_table_info)
+
+        self.truth_table_table = QTableWidget()
+        dock_layout.addWidget(self.truth_table_table)
+
+        dock_widget.setLayout(dock_layout)
         self.truth_table_dock.setWidget(dock_widget)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.truth_table_dock)
         self.truth_table_dock.hide()
 
         self.truth_table_action.toggled.connect(self.truth_table_dock.setVisible)
+        self.truth_table_action.toggled.connect(lambda visible: self.update_truth_table_panel())
+        self.truth_table_mode.currentIndexChanged.connect(self.update_truth_table_panel)
+        self.refresh_truth_table_button.clicked.connect(self.update_truth_table_panel)
+
+        self.selected_node_id = None
+        self.scene.selectionChanged.connect(self.on_scene_selection_changed)
+
+    def on_scene_selection_changed(self):
+        selected_items = self.scene.selectedItems()
+        if len(selected_items) == 1:
+            item = selected_items[0]
+            if hasattr(item, "node_id"):
+                self.selected_node_id = item.node_id
+            else:
+                self.selected_node_id = None
+        else:
+            self.selected_node_id = None
+        self.update_truth_table_panel()
+
+    def update_truth_table_panel(self):
+        if not self.truth_table_action.isChecked():
+            return
+
+        mode = self.truth_table_mode.currentText()
+        if mode == "Схема":
+            table = get_truth_table(self.controller.circuit)
+            if not table["inputs"] and not table["outputs"]:
+                self.truth_table_info.setText("Схема не содержит входов и/или выходов")
+                self.truth_table_table.clear()
+                self.scene.clear_highlights()
+                return
+            self.truth_table_info.setText("Таблица истинности для всей схемы")
+            headers = [f"IN_{nid}" for nid in table["inputs"]] + [f"OUT_{nid}" for nid in table["outputs"]]
+            self._fill_truth_table(headers, table["rows"])
+            self.scene.clear_highlights()
+        else:
+            if self.selected_node_id is None:
+                self.truth_table_info.setText("Режим по элементу: выберите узел на схеме")
+                self.truth_table_table.clear()
+                self.scene.clear_highlights()
+                return
+            table = get_truth_table_for_node(self.controller.circuit, self.selected_node_id)
+            headers = [f"IN_{nid}" for nid in table["inputs"]] + [f"Node_{table['node_id']}"]
+            self.truth_table_info.setText(f"Таблица истинности узла #{self.selected_node_id}")
+            self._fill_truth_table(headers, table["rows"])
+            affected = get_affected_nodes(self.controller.circuit, self.selected_node_id)
+            self.scene.highlight_nodes(affected + [self.selected_node_id])
+
+    def _fill_truth_table(self, headers, rows):
+        self.truth_table_table.clear()
+        self.truth_table_table.setColumnCount(len(headers))
+        self.truth_table_table.setRowCount(len(rows))
+        self.truth_table_table.setHorizontalHeaderLabels(headers)
+        for r, row in enumerate(rows):
+            for c, header in enumerate(headers):
+                value = row.get(header, 0)
+                item = QTableWidgetItem(str(value))
+                self.truth_table_table.setItem(r, c, item)
 
     def open_file(self):
         filepath, _ = QFileDialog.getOpenFileName(self, "Открыть схему", "", "XML Files (*.xml)")

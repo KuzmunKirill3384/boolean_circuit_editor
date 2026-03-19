@@ -56,3 +56,15 @@ class AppController:
             self.history.clear()
         except Exception as e:
             print("Ошибка при загрузке:", e)
+
+    # def get_truth_table(self):
+    #     from backend.logic.truth_table import get_truth_table
+    #     return get_truth_table(self.circuit)
+
+    # def get_truth_table_for_node(self, node_id):
+    #     from backend.logic.truth_table import get_truth_table_for_node
+    #     return get_truth_table_for_node(self.circuit, node_id)
+
+    # def get_affected_nodes(self, node_id):
+    #     from backend.logic.truth_table import get_affected_nodes
+    #     return get_affected_nodes(self.circuit, node_id)
