@@ -57,14 +57,23 @@ class AppController:
         except Exception as e:
             print("Ошибка при загрузке:", e)
 
-    # def get_truth_table(self):
-    #     from backend.logic.truth_table import get_truth_table
-    #     return get_truth_table(self.circuit)
+    def get_truth_table(self):
+        from backend.logic.truth_table import get_truth_table
+        return get_truth_table(self.circuit)
 
-    # def get_truth_table_for_node(self, node_id):
-    #     from backend.logic.truth_table import get_truth_table_for_node
-    #     return get_truth_table_for_node(self.circuit, node_id)
+    def get_truth_table_for_node(self, node_id):
+        from backend.logic.truth_table import get_truth_table_for_node
+        return get_truth_table_for_node(self.circuit, node_id)
 
-    # def get_affected_nodes(self, node_id):
-    #     from backend.logic.truth_table import get_affected_nodes
-    #     return get_affected_nodes(self.circuit, node_id)
+    def get_affected_nodes(self, node_id):
+        from backend.logic.truth_table import get_affected_nodes
+        return get_affected_nodes(self.circuit, node_id)
+
+    def get_removable_count_per_input(self, input_values):
+        from backend.logic.truth_table import get_removable_count_per_input
+        return get_removable_count_per_input(self.circuit, input_values)
+
+    def simplify_circuit(self, input_values):
+        from backend.logic.truth_table import simplify
+        self.circuit = simplify(self.circuit, input_values)
+        self.history.clear()
