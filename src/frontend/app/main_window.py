@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt
 from frontend.app.app_controller import AppController
 from frontend.canvas.scene import CircuitScene
 from frontend.canvas.view import CircuitView
+from frontend.dialogs.settings_dialog import SettingsDialog
 import sys
 
 class MainWindow(QMainWindow):
@@ -60,6 +61,8 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.polynomial_action)
         view_menu.addSeparator()
         view_menu.addAction(self.settings_action)
+
+        self.settings_action.triggered.connect(self.show_settings)
 
     def init_toolbar(self):
         toolbar = QToolBar("Элементы")
@@ -303,6 +306,10 @@ class MainWindow(QMainWindow):
         filepath, _ = QFileDialog.getSaveFileName(self, "Сохранить схему", "", "XML Files (*.xml)")
         if filepath:
             self.controller.save_circuit(filepath)
+
+    def show_settings(self):
+        dialog = SettingsDialog(self)
+        dialog.exec()
 
 
 if __name__ == "__main__":

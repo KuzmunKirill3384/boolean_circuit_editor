@@ -1,14 +1,14 @@
 from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QGraphicsLineItem
 from PyQt6.QtGui import QPen, QBrush, QColor, QFont
 from PyQt6.QtCore import Qt
+from frontend.common.settings import SettingsManager
 
 
 class NodeItem(QGraphicsRectItem):
-    WIDTH = 95
-    HEIGHT = 50
-
-    def __init__(self, node, move_callback=None):
-        super().__init__(-NodeItem.WIDTH / 2, -NodeItem.HEIGHT / 2, NodeItem.WIDTH, NodeItem.HEIGHT)
+    def __init__(self, node, move_callback=None, settings_manager=None):
+        self.settings_manager = settings_manager or SettingsManager()
+        width, height = self.settings_manager.get_node_size()
+        super().__init__(-width / 2, -height / 2, width, height)
         self.node_id = node["id"]
         self.node_type = node["type"]
         self.move_callback = move_callback
@@ -28,15 +28,7 @@ class NodeItem(QGraphicsRectItem):
         self.update()
 
     def paint(self, painter, option, widget=None):
-        color_map = {
-            "AND": QColor("#6c7ae0"),
-            "OR": QColor("#edc126"),
-            "XOR": QColor("#8cd17a"),
-            "EQUAL": QColor("#ef6d6d"),
-            "IN": QColor("#8fbcff"),
-            "OUT": QColor("#a68cfc"),
-        }
-        color = color_map.get(self.node_type.upper(), QColor("#999999"))
+        color = self.settings_manager.get_node_color(self.node_type.upper())
         if self.highlight_status == "affected":
             color = QColor("#ff8c00")
         elif self.highlight_status == "selected":
@@ -48,7 +40,7 @@ class NodeItem(QGraphicsRectItem):
         painter.setPen(QPen(pen_color, 2))
         painter.drawRoundedRect(self.rect(), 8, 8)
 
-        font = QFont("Arial", 9)
+        font = self.settings_manager.get_label_font()
         painter.setFont(font)
         painter.setPen(Qt.GlobalColor.white)
         painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, f"{self.node_type}\n#{self.node_id}")
@@ -67,13 +59,18 @@ class NodeItem(QGraphicsRectItem):
                 self.move_callback(self.node_id, old_x, old_y, new_x, new_y)
 
 class ConnectionLine(QGraphicsLineItem):
-    def __init__(self, from_item, to_item):
+    def __init__(self, from_item, to_item, settings_manager=None):
         super().__init__()
+        self.settings_manager = settings_manager or SettingsManager()
         self.from_item = from_item
         self.to_item = to_item
         self.setZValue(-1)
-        self.setPen(QPen(Qt.GlobalColor.black, 2))
+        self.update_pen()
         self.update_line()
+
+    def update_pen(self):
+        color = self.settings_manager.get_line_color()
+        self.setPen(QPen(color, 2))
 
     def update_line(self):
         p1 = self.from_item.scenePos()
@@ -85,12 +82,14 @@ class CircuitScene(QGraphicsScene):
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
+        self.settings_manager = SettingsManager()
         self.selected_gate = None
         self.mode = "add"
         self.connect_source_id = None
         self.setSceneRect(0, 0, 1000, 600)
         self.nodes = {}
         self.lines = []
+        self.apply_settings()
 
     def set_selected_gate(self, gate_type):
         self.selected_gate = gate_type
@@ -107,7 +106,7 @@ class CircuitScene(QGraphicsScene):
         self.lines = []
 
         for node in self.controller.circuit.get_nodes():
-            item = NodeItem(node, move_callback=self.on_node_moved)
+            item = NodeItem(node, move_callback=self.on_node_moved, settings_manager=self.settings_manager)
             self.addItem(item)
             self.nodes[node["id"]] = item
 
@@ -116,9 +115,15 @@ class CircuitScene(QGraphicsScene):
             to_item = self.nodes.get(in_id)
             if from_item is None or to_item is None:
                 continue
-            line = ConnectionLine(from_item, to_item)
+            line = ConnectionLine(from_item, to_item, settings_manager=self.settings_manager)
             self.addItem(line)
             self.lines.append(line)
+
+    def apply_settings(self):
+        bg_color = self.settings_manager.get_background_color()
+        self.setBackgroundBrush(QBrush(bg_color))
+        # Пересинхронизировать сцену для применения новых размеров и цветов
+        self.sync_scene()
 
     def on_node_moved(self, node_id, old_x, old_y, new_x, new_y):
         self.controller.move_node(node_id, old_x, old_y, new_x, new_y)
