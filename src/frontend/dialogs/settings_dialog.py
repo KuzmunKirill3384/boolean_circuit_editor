@@ -13,6 +13,8 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Настройки")
         self.resize(400, 600)
 
+        self.node_types = ["AND", "OR", "XOR", "EQUAL", "IN", "OUT"]
+
         # Храним текущие цвета
         self.current_node_colors = {nt: self.settings_manager.get_node_color(nt) for nt in self.node_types}
         self.current_line_color = self.settings_manager.get_line_color()
@@ -25,7 +27,6 @@ class SettingsDialog(QDialog):
         node_colors_group = QGroupBox("Цвета элементов")
         node_colors_layout = QFormLayout()
 
-        self.node_types = ["AND", "OR", "XOR", "EQUAL", "IN", "OUT"]
         self.node_color_buttons = {}
         for node_type in self.node_types:
             button = QPushButton()

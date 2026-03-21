@@ -48,6 +48,17 @@ class AppController:
             export_to_xml(self.circuit, filepath)
         except Exception as e:
             print("Ошибка при сохранении:", e)
+            raise
+
+    def load_circuit(self, filepath):
+        try:
+            from core.builder import import_from_xml
+            new_circuit = import_from_xml(filepath)
+            self.circuit = new_circuit
+            self.history = CommandHistory()  # сброс истории
+        except Exception as e:
+            print("Ошибка при загрузке:", e)
+            raise
 
     def load_circuit(self, filepath):
         try:

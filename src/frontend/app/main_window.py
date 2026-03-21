@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QMenuBar, QMenu, QToolBar, QFileDialog,
     QDockWidget, QApplication, QLabel, QWidget, QVBoxLayout,
     QHBoxLayout, QComboBox, QPushButton, QTableWidget, QTableWidgetItem,
-    QFormLayout
+    QFormLayout, QMessageBox
 )
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
@@ -299,13 +299,21 @@ class MainWindow(QMainWindow):
     def open_file(self):
         filepath, _ = QFileDialog.getOpenFileName(self, "Открыть схему", "", "XML Files (*.xml)")
         if filepath:
-            self.controller.load_circuit(filepath)
-            self.scene.sync_scene()
+            try:
+                self.controller.load_circuit(filepath)
+                self.scene.sync_scene()
+                self.update_truth_table_panel()
+                self.update_polynomial_display()
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить файл: {e}")
 
     def save_file(self):
         filepath, _ = QFileDialog.getSaveFileName(self, "Сохранить схему", "", "XML Files (*.xml)")
         if filepath:
-            self.controller.save_circuit(filepath)
+            try:
+                self.controller.save_circuit(filepath)
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл: {e}")
 
     def show_settings(self):
         dialog = SettingsDialog(self)
