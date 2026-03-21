@@ -53,16 +53,6 @@ class AppController:
     def load_circuit(self, filepath):
         try:
             from core.builder import import_from_xml
-            new_circuit = import_from_xml(filepath)
-            self.circuit = new_circuit
-            self.history = CommandHistory()  # сброс истории
-        except Exception as e:
-            print("Ошибка при загрузке:", e)
-            raise
-
-    def load_circuit(self, filepath):
-        try:
-            from core.builder import import_from_xml
             self.circuit = import_from_xml(filepath)
             self.history.clear()
         except Exception as e:
