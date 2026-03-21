@@ -45,8 +45,8 @@ class MainWindow(QMainWindow):
         edit_menu = menu_bar.addMenu("Правка")
         undo_action = QAction("Отмена", self)
         redo_action = QAction("Повтор", self)
-        undo_action.triggered.connect(lambda: [self.controller.undo(), self.scene.sync_scene()])
-        redo_action.triggered.connect(lambda: [self.controller.redo(), self.scene.sync_scene()])
+        undo_action.triggered.connect(self.controller.undo)
+        redo_action.triggered.connect(self.controller.redo)
         edit_menu.addAction(undo_action)
         edit_menu.addAction(redo_action)
 
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
 
         for gate in ["AND", "OR", "XOR", "EQUAL"]:
             action = QAction(gate, self)
-            action.triggered.connect(lambda checked, g=gate: self.select_gate(g))
+            action.triggered.connect(lambda checked, g = gate: self.select_gate(g))
             toolbar.addAction(action)
 
         connect_action = QAction("Связь", self)
@@ -131,7 +131,6 @@ class MainWindow(QMainWindow):
         self.truth_table_table = QTableWidget()
         dock_layout.addWidget(self.truth_table_table)
 
-        # Panel for fixed inputs + actions
         self.fixed_inputs_label = QLabel("Фиксированные входы")
         dock_layout.addWidget(self.fixed_inputs_label)
         self.fixed_inputs_layout = QFormLayout()
