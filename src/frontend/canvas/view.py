@@ -5,6 +5,6 @@ class CircuitView(QGraphicsView):
     def __init__(self, scene):
         super().__init__(scene)
         # Включаем или отключаем антиалиасинг (сглаживание)
-        self.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        self.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         # Режим выделения объектов рамкой
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)

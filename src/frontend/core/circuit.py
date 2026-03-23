@@ -1,9 +1,8 @@
 
 class Circuit:
     def __init__(self):
-        self.nodes = []  # список узлов
-        self.connections = []  # список соединений
-        self._next_node_id = 1
+        self.nodes = [] 
+        self.connections = [] 
 
     def add_node(self, node_type, x, y):
         node = {

@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt
 from frontend.common.settings import SettingsManager
 
 class SettingsDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent = None):
         super().__init__(parent)
         self.settings_manager = SettingsManager()
         self.setWindowTitle("Настройки")
@@ -15,7 +15,6 @@ class SettingsDialog(QDialog):
 
         self.node_types = ["AND", "OR", "XOR", "EQUAL", "IN", "OUT"]
 
-        # Храним текущие цвета
         self.current_node_colors = {nt: self.settings_manager.get_node_color(nt) for nt in self.node_types}
         self.current_line_color = self.settings_manager.get_line_color()
         self.current_bg_color = self.settings_manager.get_background_color()
@@ -23,7 +22,6 @@ class SettingsDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        # Группа цветов узлов
         node_colors_group = QGroupBox("Цвета элементов")
         node_colors_layout = QFormLayout()
 
