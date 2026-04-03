@@ -32,6 +32,14 @@ class AppController:
         cmd = ConnectCommand(self.circuit, out_node_id, in_node_id)
         self.history.execute(cmd)
 
+    def connect_pins(self, out_node_id, out_pin, in_node_id, in_pin):
+        success, message = self.circuit.connect_pins(out_node_id, out_pin, in_node_id, in_pin)
+        if success:
+            # For now, use legacy command (need to update commands for pins)
+            cmd = ConnectCommand(self.circuit, out_node_id, in_node_id)  # TODO: update
+            self.history.execute(cmd)
+        return success, message
+
     def disconnect_nodes(self, out_node_id, in_node_id):
         cmd = DisconnectCommand(self.circuit, out_node_id, in_node_id)
         self.history.execute(cmd)
