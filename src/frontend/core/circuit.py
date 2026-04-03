@@ -14,7 +14,9 @@ class Circuit:
             "XOR": (2, 1),
             "EQUAL": (2, 1),
             "IN": (0, 1),
-            "OUT": (1, 0)
+            "OUT": (1, 0),
+            "CONST_0": (0, 1),
+            "CONST_1": (0, 1)
         }
         return pin_counts.get(node_type.upper(), (1, 1))  # Default 1 in, 1 out
 

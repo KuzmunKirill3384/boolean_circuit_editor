@@ -141,6 +141,22 @@ class NodeItem(QGraphicsRectItem):
             font.setPointSize(font.pointSize() + 4)
             painter.setFont(font)
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "◀")
+        elif self.node_type.upper() == "CONST_0":
+            # Draw constant 0 node
+            painter.drawRoundedRect(self.rect(), 8, 8)
+            painter.setPen(Qt.GlobalColor.white)
+            font = self.settings_manager.get_label_font()
+            font.setPointSize(font.pointSize() + 6)
+            painter.setFont(font)
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "⟘ 0")
+        elif self.node_type.upper() == "CONST_1":
+            # Draw constant 1 node
+            painter.drawRoundedRect(self.rect(), 8, 8)
+            painter.setPen(Qt.GlobalColor.white)
+            font = self.settings_manager.get_label_font()
+            font.setPointSize(font.pointSize() + 6)
+            painter.setFont(font)
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "⟘ 1")
         else:
             # Default: draw rounded rect with text
             painter.drawRoundedRect(self.rect(), 8, 8)

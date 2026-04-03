@@ -13,7 +13,7 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Настройки")
         self.resize(400, 600)
 
-        self.node_types = ["AND", "OR", "XOR", "EQUAL", "IN", "OUT"]
+        self.node_types = ["AND", "OR", "XOR", "EQUAL", "IN", "OUT", "CONST_0", "CONST_1"]
 
         self.current_node_colors = {nt: self.settings_manager.get_node_color(nt) for nt in self.node_types}
         self.current_line_color = self.settings_manager.get_line_color()

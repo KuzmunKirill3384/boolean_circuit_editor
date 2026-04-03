@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("Элементы")
         self.addToolBar(toolbar)
 
-        for gate in ["AND", "OR", "XOR", "EQUAL"]:
+        for gate in ["AND", "OR", "XOR", "EQUAL", "CONST_0", "CONST_1"]:
             action = QAction(gate, self)
             action.triggered.connect(lambda checked, g = gate: self.select_gate(g))
             toolbar.addAction(action)

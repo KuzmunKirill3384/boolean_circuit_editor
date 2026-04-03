@@ -14,6 +14,8 @@ class SettingsManager:
             "EQUAL": QColor("#ef6d6d"),
             "IN": QColor("#8fbcff"),
             "OUT": QColor("#a68cfc"),
+            "CONST_0": QColor("#ffb3ba"),
+            "CONST_1": QColor("#bae1ff"),
         }
         color_str = self.settings.value(f"node_colors/{node_type}", default_colors.get(node_type.upper(), QColor("#999999")).name())
         return QColor(color_str)
