@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QGraphicsLineItem, QGraphicsEllipseItem
 from PyQt6.QtGui import QPen, QBrush, QColor, QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from frontend.common.settings import SettingsManager
 from frontend.core.circuit import Circuit
 
@@ -27,8 +27,11 @@ class PinItem(QGraphicsEllipseItem):
         super().hoverLeaveEvent(event)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton and self.scene():
+            # Safely call handler without calling super() to avoid accessing deleted object
             self.scene().on_pin_clicked(self.node_item.node_id, self.pin_index, self.is_input)
+            event.accept()
+            return
         super().mousePressEvent(event)
 
 
@@ -148,7 +151,7 @@ class NodeItem(QGraphicsRectItem):
             font = self.settings_manager.get_label_font()
             font.setPointSize(font.pointSize() + 6)
             painter.setFont(font)
-            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "⟘ 0")
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "0")
         elif self.node_type.upper() == "CONST_1":
             # Draw constant 1 node
             painter.drawRoundedRect(self.rect(), 8, 8)
@@ -156,7 +159,7 @@ class NodeItem(QGraphicsRectItem):
             font = self.settings_manager.get_label_font()
             font.setPointSize(font.pointSize() + 6)
             painter.setFont(font)
-            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "⟘ 1")
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "1")
         else:
             # Default: draw rounded rect with text
             painter.drawRoundedRect(self.rect(), 8, 8)
@@ -247,7 +250,8 @@ class CircuitScene(QGraphicsScene):
             
             success, message = self.controller.connect_pins(source_node, source_pin, node_id, pin_index)
             if success:
-                self.sync_scene()
+                # Schedule sync_scene asynchronously to avoid deleting objects during event handling
+                QTimer.singleShot(0, self.sync_scene)
             
             self.connect_source_id = None
             if self.temp_line:
