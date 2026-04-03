@@ -2,7 +2,8 @@
 class Circuit:
     def __init__(self):
         self.nodes = [] 
-        self.connections = [] 
+        self.connections = []
+        self._next_node_id = 0 
 
     def add_node(self, node_type, x, y):
         node = {

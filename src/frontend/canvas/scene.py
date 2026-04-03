@@ -38,12 +38,65 @@ class NodeItem(QGraphicsRectItem):
         if self.isSelected():
             pen_color = Qt.GlobalColor.red
         painter.setPen(QPen(pen_color, 2))
-        painter.drawRoundedRect(self.rect(), 8, 8)
 
-        font = self.settings_manager.get_label_font()
-        painter.setFont(font)
-        painter.setPen(Qt.GlobalColor.white)
-        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, f"{self.node_type}\n#{self.node_id}")
+        # Draw different shapes based on node type
+        if self.node_type.upper() == "AND":
+            # Draw AND gate symbol (triangle with &)
+            painter.drawRoundedRect(self.rect(), 8, 8)
+            painter.setPen(Qt.GlobalColor.white)
+            font = self.settings_manager.get_label_font()
+            font.setPointSize(font.pointSize() + 4)  # Larger for symbol
+            painter.setFont(font)
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "∧")
+        elif self.node_type.upper() == "OR":
+            # Draw OR gate symbol (curved shape)
+            painter.drawRoundedRect(self.rect(), 8, 8)
+            painter.setPen(Qt.GlobalColor.white)
+            font = self.settings_manager.get_label_font()
+            font.setPointSize(font.pointSize() + 4)
+            painter.setFont(font)
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "∨")
+        elif self.node_type.upper() == "XOR":
+            # Draw XOR gate symbol
+            painter.drawRoundedRect(self.rect(), 8, 8)
+            painter.setPen(Qt.GlobalColor.white)
+            font = self.settings_manager.get_label_font()
+            font.setPointSize(font.pointSize() + 22)
+            painter.setFont(font)
+            text_rect = self.rect().adjusted(0, 0, 0, -7)
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, "⊕")
+        elif self.node_type.upper() == "EQUAL":
+            # Draw EQUAL gate symbol
+            painter.drawRoundedRect(self.rect(), 8, 8)
+            painter.setPen(Qt.GlobalColor.white)
+            font = self.settings_manager.get_label_font()
+            font.setPointSize(font.pointSize() + 20)
+            painter.setFont(font)
+            text_rect = self.rect().adjusted(0, 0, 0, -7)
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, "=")
+        elif self.node_type.upper() == "IN":
+            # Draw input node (rectangle with arrow)
+            painter.drawRoundedRect(self.rect(), 8, 8)
+            painter.setPen(Qt.GlobalColor.white)
+            font = self.settings_manager.get_label_font()
+            font.setPointSize(font.pointSize() + 4)
+            painter.setFont(font)
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "▶")
+        elif self.node_type.upper() == "OUT":
+            # Draw output node (rectangle with arrow)
+            painter.drawRoundedRect(self.rect(), 8, 8)
+            painter.setPen(Qt.GlobalColor.white)
+            font = self.settings_manager.get_label_font()
+            font.setPointSize(font.pointSize() + 4)
+            painter.setFont(font)
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "◀")
+        else:
+            # Default: draw rounded rect with text
+            painter.drawRoundedRect(self.rect(), 8, 8)
+            font = self.settings_manager.get_label_font()
+            painter.setFont(font)
+            painter.setPen(Qt.GlobalColor.white)
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, f"{self.node_type}\n#{self.node_id}")
 
     def mousePressEvent(self, event):
         self.original_pos = (self.x(), self.y())
