@@ -124,3 +124,32 @@ class AppController:
             self.history.clear()
         except Exception:
             pass
+
+    def evaluate_circuit(self, input_values):
+        """Evaluate circuit for given input values"""
+        try:
+            from backend.logic.truth_table import evaluate_circuit
+            return evaluate_circuit(self.circuit, input_values)
+        except Exception:
+            return {}
+
+    def get_evaluation_report(self, input_values):
+        """Get detailed evaluation report"""
+        try:
+            report = {}
+            # Try to get truth table and evaluate
+            tt = self.get_truth_table()
+            if tt and tt.get("inputs"):
+                # Find row that matches input values
+                for row in tt.get("rows", []):
+                    match = True
+                    for inp_id in tt.get("inputs", []):
+                        if row.get(f"IN_{inp_id}") != input_values.get(inp_id):
+                            match = False
+                            break
+                    if match:
+                        report["row"] = row
+                        break
+            return report
+        except Exception:
+            return {}

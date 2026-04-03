@@ -52,6 +52,7 @@ class NodeItem(QGraphicsRectItem):
         self.setToolTip(f"{self.node_type} ({self.node_id})")
         self.setPos(node["x"], node["y"])
         self.create_pins()
+        self.create_pins()
 
     def create_pins(self):
         input_pins, output_pins = Circuit.get_pin_counts(self.node_type)
@@ -72,23 +73,6 @@ class NodeItem(QGraphicsRectItem):
             pin.setPos(width/2 + 4, y_offset)
             pin.setParentItem(self)
             self.pins.append(pin)
-    def __init__(self, node, move_callback=None, settings_manager=None):
-        self.settings_manager = settings_manager or SettingsManager()
-        width, height = self.settings_manager.get_node_size()
-        super().__init__(-width / 2, -height / 2, width, height)
-        self.node_id = node["id"]
-        self.node_type = node["type"]
-        self.move_callback = move_callback
-        self.highlight_status = "default"
-        self.original_pos = (node["x"], node["y"])
-        self.setFlags(
-            QGraphicsRectItem.GraphicsItemFlag.ItemIsMovable
-            | QGraphicsRectItem.GraphicsItemFlag.ItemSendsGeometryChanges
-            | QGraphicsRectItem.GraphicsItemFlag.ItemIsSelectable
-        )
-        self.setAcceptHoverEvents(True)
-        self.setToolTip(f"{self.node_type} ({self.node_id})")
-        self.setPos(node["x"], node["y"])
 
     def set_highlight(self, status):
         self.highlight_status = status
@@ -325,38 +309,10 @@ class CircuitScene(QGraphicsScene):
                 clicked_node = item
                 break
 
+        # Only handle "add" mode here. "connect" mode is handled by PinItem.mousePressEvent
         if self.mode == "add" and self.selected_gate and clicked_node is None:
             node_id = self.controller.add_node(self.selected_gate, scene_pos.x(), scene_pos.y())
             self.sync_scene()
-            return
-
-        if self.mode == "connect":
-            if clicked_node is None:
-                super().mousePressEvent(event)
-                return
-            if self.connect_source_id is None:
-                self.connect_source_id = clicked_node.node_id
-            else:
-                dest_id = clicked_node.node_id
-                valid, reason = self.validate_connection(self.connect_source_id, dest_id)
-                if valid:
-                    self.controller.connect_nodes(self.connect_source_id, dest_id)
-                    self.sync_scene()
-                self.connect_source_id = None
-            return
-
-        if self.mode == "disconnect":
-            if clicked_node is None:
-                super().mousePressEvent(event)
-                return
-            if self.connect_source_id is None:
-                self.connect_source_id = clicked_node.node_id
-            else:
-                dest_id = clicked_node.node_id
-                if (self.connect_source_id, dest_id) in self.controller.circuit.get_connections():
-                    self.controller.disconnect_nodes(self.connect_source_id, dest_id)
-                    self.sync_scene()
-                self.connect_source_id = None
             return
 
         super().mousePressEvent(event)

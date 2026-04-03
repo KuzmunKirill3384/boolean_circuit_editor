@@ -278,13 +278,64 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(str(value))
                 self.truth_table_table.setItem(r, c, item)
 
+    def update_fixed_inputs_panel(self):
+        """Update the list of available input nodes for fixed value selection"""
+        while self.fixed_inputs_layout.rowCount() > 0:
+            self.fixed_inputs_layout.removeRow(0)
+        self.input_value_controls = {}
+
+        input_nodes = [n["id"] for n in self.controller.circuit.get_nodes() if n["type"].upper() == "IN"]
+        if not input_nodes:
+            return
+        
+        for nid in sorted(input_nodes):
+            combo = QComboBox()
+            combo.addItems(["0", "1"])
+            self.input_value_controls[nid] = combo
+            self.fixed_inputs_layout.addRow(QLabel(f"IN_{nid}"), combo)
+
+    def get_fixed_input_values(self):
+        """Get dictionary of fixed input values from UI controls"""
+        return {nid: int(combo.currentText()) for nid, combo in self.input_value_controls.items()}
+
     def on_evaluate_clicked(self):
-        # TODO: implement evaluation
-        pass
+        """Evaluate circuit with fixed input values"""
+        self.update_fixed_inputs_panel()
+        values = self.get_fixed_input_values()
+        if not values:
+            self.eval_result_label.setText("Нет входов для оценки")
+            return
+        
+        try:
+            report = self.controller.get_evaluation_report(values)
+            if report and "row" in report:
+                # Get output nodes
+                output_nodes = [n["id"] for n in self.controller.circuit.get_nodes() if n["type"].upper() == "OUT"]
+                result_text = "Результаты: "
+                for out_id in output_nodes:
+                    val = report["row"].get(f"OUT_{out_id}", "?")
+                    result_text += f"OUT_{out_id}={val} "
+                self.eval_result_label.setText(result_text)
+            else:
+                self.eval_result_label.setText("Не удалось оценить схему")
+        except Exception as e:
+            self.eval_result_label.setText(f"Ошибка оценки: {str(e)}")
 
     def on_simplify_clicked(self):
-        # TODO: implement simplification
-        pass
+        """Simplify circuit with fixed input values"""
+        self.update_fixed_inputs_panel()
+        values = self.get_fixed_input_values()
+        if not values:
+            self.eval_result_label.setText("Нет входов для упрощения")
+            return
+        
+        try:
+            self.controller.simplify_circuit(values)
+            self.scene.sync_scene()
+            self.update_truth_table_panel()
+            self.eval_result_label.setText("Схема упрощена!")
+        except Exception as e:
+            self.eval_result_label.setText(f"Ошибка упрощения: {str(e)}")
 
     def open_file(self):
         filepath, _ = QFileDialog.getOpenFileName(self, "Открыть схему", "", "XML Files (*.xml)")
