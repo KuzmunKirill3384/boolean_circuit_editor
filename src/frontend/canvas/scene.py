@@ -205,7 +205,7 @@ class CircuitScene(QGraphicsScene):
         self.settings_manager = SettingsManager()
         self.selected_gate = None
         self.mode = "add"
-        self.connect_source_pin = None  # (node_id, pin_index, is_input)
+        self.connect_source_id = None
         self.temp_line = None
         self.setSceneRect(0, 0, 1000, 600)
         self.nodes = {}
@@ -222,7 +222,7 @@ class CircuitScene(QGraphicsScene):
 
     def set_connect_mode(self):
         self.mode = "connect"
-        self.connect_source_pin = None
+        self.connect_source_id = None
         if self.temp_line:
             self.removeItem(self.temp_line)
             self.temp_line = None
@@ -231,14 +231,14 @@ class CircuitScene(QGraphicsScene):
         if self.mode != "connect":
             return
         
-        if self.connect_source_pin is None:
+        if self.connect_source_id is None:
             # Start connection
             if is_input:
                 return  # Can't start from input pin
-            self.connect_source_pin = (node_id, pin_index, is_input)
+            self.connect_source_id = (node_id, pin_index, is_input)
         else:
             # Complete connection
-            source_node, source_pin, source_is_input = self.connect_source_pin
+            source_node, source_pin, source_is_input = self.connect_source_id
             if source_node == node_id and source_pin == pin_index:
                 return  # Same pin
             
@@ -248,11 +248,8 @@ class CircuitScene(QGraphicsScene):
             success, message = self.controller.connect_pins(source_node, source_pin, node_id, pin_index)
             if success:
                 self.sync_scene()
-            else:
-                # TODO: show error message
-                pass
             
-            self.connect_source_pin = None
+            self.connect_source_id = None
             if self.temp_line:
                 self.removeItem(self.temp_line)
                 self.temp_line = None
@@ -330,7 +327,6 @@ class CircuitScene(QGraphicsScene):
 
         if self.mode == "add" and self.selected_gate and clicked_node is None:
             node_id = self.controller.add_node(self.selected_gate, scene_pos.x(), scene_pos.y())
-            print(f"Добавлен узел {self.selected_gate} id={node_id} в {scene_pos.x():.1f},{scene_pos.y():.1f}")
             self.sync_scene()
             return
 
@@ -340,16 +336,12 @@ class CircuitScene(QGraphicsScene):
                 return
             if self.connect_source_id is None:
                 self.connect_source_id = clicked_node.node_id
-                print(f"Режим связи: выбран исходный узел {self.connect_source_id}")
             else:
                 dest_id = clicked_node.node_id
                 valid, reason = self.validate_connection(self.connect_source_id, dest_id)
                 if valid:
                     self.controller.connect_nodes(self.connect_source_id, dest_id)
-                    print(f"Соединено {self.connect_source_id} -> {dest_id}")
                     self.sync_scene()
-                else:
-                    print("Ошибка валидации связи:", reason)
                 self.connect_source_id = None
             return
 
@@ -359,15 +351,11 @@ class CircuitScene(QGraphicsScene):
                 return
             if self.connect_source_id is None:
                 self.connect_source_id = clicked_node.node_id
-                print(f"Режим отключения: выбран исходный узел {self.connect_source_id}")
             else:
                 dest_id = clicked_node.node_id
                 if (self.connect_source_id, dest_id) in self.controller.circuit.get_connections():
                     self.controller.disconnect_nodes(self.connect_source_id, dest_id)
-                    print(f"Отключено {self.connect_source_id} -> {dest_id}")
                     self.sync_scene()
-                else:
-                    print("Связь не найдена для отключения")
                 self.connect_source_id = None
             return
 
@@ -382,7 +370,6 @@ class CircuitScene(QGraphicsScene):
             for item in selected_items:
                 if isinstance(item, NodeItem):
                     self.controller.remove_node(item.node_id)
-                    print(f"Узел {item.node_id} удален")
             self.sync_scene()
             return
         super().keyPressEvent(event)

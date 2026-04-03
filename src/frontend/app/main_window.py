@@ -10,7 +10,9 @@ from frontend.app.app_controller import AppController
 from frontend.canvas.scene import CircuitScene
 from frontend.canvas.view import CircuitView
 from frontend.panels.properties_panel import PropertiesPanel
+from frontend.dialogs.settings_dialog import SettingsDialog
 import sys
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -86,13 +88,17 @@ class MainWindow(QMainWindow):
     def select_gate(self, gate_type):
         self.scene.set_selected_gate(gate_type)
         self.scene.mode = "add"
+        print("Выбран узел:", gate_type)
 
     def set_connect_mode(self, checked=False):
-        self.scene.set_connect_mode()
+        self.scene.mode = "connect"
+        self.scene.connect_source_id = None
+        print("Режим связи включен")
 
     def set_disconnect_mode(self, checked=False):
-        # TODO: implement disconnect mode for pins
-        pass
+        self.scene.mode = "disconnect"
+        self.scene.connect_source_id = None
+        print("Режим отключения включен")
 
 
     def init_central(self):
@@ -135,12 +141,30 @@ class MainWindow(QMainWindow):
         self.truth_table_table = QTableWidget()
         dock_layout.addWidget(self.truth_table_table)
 
+        self.fixed_inputs_label = QLabel("Фиксированные входы")
+        dock_layout.addWidget(self.fixed_inputs_label)
+        self.fixed_inputs_layout = QFormLayout()
+        self.fixed_inputs_widget = QWidget()
+        self.fixed_inputs_widget.setLayout(self.fixed_inputs_layout)
+        dock_layout.addWidget(self.fixed_inputs_widget)
+
+        self.evaluate_button = QPushButton("Оценить")
+        self.simplify_button = QPushButton("Упростить")
+        actions_layout = QHBoxLayout()
+        actions_layout.addWidget(self.evaluate_button)
+        actions_layout.addWidget(self.simplify_button)
+        dock_layout.addLayout(actions_layout)
+
+        self.eval_result_label = QLabel("")
+        dock_layout.addWidget(self.eval_result_label)
+
         dock_widget.setLayout(dock_layout)
         self.truth_table_dock.setWidget(dock_widget)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.truth_table_dock)
         self.truth_table_dock.hide()
 
-        self.input_value_controls = {}
+        self.evaluate_button.clicked.connect(self.on_evaluate_clicked)
+        self.simplify_button.clicked.connect(self.on_simplify_clicked)
 
         self.truth_table_action.toggled.connect(self.truth_table_dock.setVisible)
         self.truth_table_action.toggled.connect(lambda visible: self.update_truth_table_panel())
@@ -254,6 +278,14 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(str(value))
                 self.truth_table_table.setItem(r, c, item)
 
+    def on_evaluate_clicked(self):
+        # TODO: implement evaluation
+        pass
+
+    def on_simplify_clicked(self):
+        # TODO: implement simplification
+        pass
+
     def open_file(self):
         filepath, _ = QFileDialog.getOpenFileName(self, "Открыть схему", "", "XML Files (*.xml)")
         if filepath:
@@ -276,10 +308,3 @@ class MainWindow(QMainWindow):
     def show_settings(self):
         dialog = SettingsDialog(self)
         dialog.exec()
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    win = MainWindow()
-    win.show()
-    sys.exit(app.exec())
