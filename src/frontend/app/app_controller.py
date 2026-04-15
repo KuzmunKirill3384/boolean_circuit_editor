@@ -6,6 +6,8 @@ from frontend.commands.history import (
     MoveNodeCommand,
     ConnectCommand,
     DisconnectCommand,
+    ConnectPinsCommand,
+    DisconnectPinsCommand,
 )
 
 class AppController:
@@ -35,20 +37,26 @@ class AppController:
     def connect_pins(self, out_node_id, out_pin, in_node_id, in_pin):
         success, message = self.circuit.connect_pins(out_node_id, out_pin, in_node_id, in_pin)
         if success:
-            # For now, use legacy command (need to update commands for pins)
-            cmd = ConnectCommand(self.circuit, out_node_id, in_node_id)  # TODO: update
+            cmd = ConnectPinsCommand(self.circuit, out_node_id, out_pin, in_node_id, in_pin)
             self.history.execute(cmd)
         return success, message
+
+    def disconnect_pins(self, out_node_id, out_pin, in_node_id, in_pin):
+        success = self.circuit.disconnect_pins(out_node_id, out_pin, in_node_id, in_pin)
+        if success:
+            cmd = DisconnectPinsCommand(self.circuit, out_node_id, out_pin, in_node_id, in_pin)
+            self.history.execute(cmd)
+        return success
 
     def disconnect_nodes(self, out_node_id, in_node_id):
         cmd = DisconnectCommand(self.circuit, out_node_id, in_node_id)
         self.history.execute(cmd)
 
     def undo(self):
-        self.history.undo()
+        return self.history.undo()
 
     def redo(self):
-        self.history.redo()
+        return self.history.redo()
 
     def save_circuit(self, filepath):
         try:

@@ -47,8 +47,8 @@ class MainWindow(QMainWindow):
         edit_menu = menu_bar.addMenu("Правка")
         undo_action = QAction("Отмена", self)
         redo_action = QAction("Повтор", self)
-        undo_action.triggered.connect(self.controller.undo)
-        redo_action.triggered.connect(self.controller.redo)
+        undo_action.triggered.connect(self.undo)
+        redo_action.triggered.connect(self.redo)
         edit_menu.addAction(undo_action)
         edit_menu.addAction(redo_action)
 
@@ -234,6 +234,14 @@ class MainWindow(QMainWindow):
         self.polynomial_label.setVisible(checked)
         if checked:
             self.update_polynomial_display()
+
+    def undo(self):
+        if self.controller.undo():
+            self.scene.sync_scene()
+
+    def redo(self):
+        if self.controller.redo():
+            self.scene.sync_scene()
 
     def update_truth_table_panel(self):
         if not self.truth_table_action.isChecked():

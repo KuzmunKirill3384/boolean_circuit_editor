@@ -15,12 +15,16 @@ class CommandHistory:
             command = self.undo_stack.pop()
             command.undo()
             self.redo_stack.append(command)
+            return True
+        return False
 
     def redo(self):
         if self.redo_stack:
             command = self.redo_stack.pop()
             command.execute()
             self.undo_stack.append(command)
+            return True
+        return False
 
     def clear(self):
         self.undo_stack.clear()
@@ -55,7 +59,7 @@ class RemoveNodeCommand:
         if node is None:
             return
         self.node_data = node.copy()
-        self.connections = [c for c in self.circuit.get_connections() if c[0] == self.node_id or c[1] == self.node_id]
+        self.connections = [c for c in self.circuit.get_connections() if c[0] == self.node_id or c[2] == self.node_id]
         self.circuit.remove_node(self.node_id)
 
     def undo(self):
@@ -63,7 +67,7 @@ class RemoveNodeCommand:
             return
         self.circuit.add_node_with_id(self.node_data)
         for conn in self.connections:
-            self.circuit.connect_nodes(conn[0], conn[1])
+            self.circuit.connect_pins(conn[0], conn[1], conn[2], conn[3])
 
 
 class MoveNodeCommand:
@@ -106,3 +110,33 @@ class DisconnectCommand:
 
     def undo(self):
         self.circuit.connect_nodes(self.out_node_id, self.in_node_id)
+
+
+class ConnectPinsCommand:
+    def __init__(self, circuit, out_node_id, out_pin, in_node_id, in_pin):
+        self.circuit = circuit
+        self.out_node_id = out_node_id
+        self.out_pin = out_pin
+        self.in_node_id = in_node_id
+        self.in_pin = in_pin
+
+    def execute(self):
+        self.circuit.connect_pins(self.out_node_id, self.out_pin, self.in_node_id, self.in_pin)
+
+    def undo(self):
+        self.circuit.disconnect_pins(self.out_node_id, self.out_pin, self.in_node_id, self.in_pin)
+
+
+class DisconnectPinsCommand:
+    def __init__(self, circuit, out_node_id, out_pin, in_node_id, in_pin):
+        self.circuit = circuit
+        self.out_node_id = out_node_id
+        self.out_pin = out_pin
+        self.in_node_id = in_node_id
+        self.in_pin = in_pin
+
+    def execute(self):
+        self.circuit.disconnect_pins(self.out_node_id, self.out_pin, self.in_node_id, self.in_pin)
+
+    def undo(self):
+        self.circuit.connect_pins(self.out_node_id, self.out_pin, self.in_node_id, self.in_pin)
