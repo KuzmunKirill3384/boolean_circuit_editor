@@ -55,7 +55,6 @@ class NodeItem(QGraphicsRectItem):
         self.setToolTip(f"{self.node_type} ({self.node_id})")
         self.setPos(node["x"], node["y"])
         self.create_pins()
-        self.create_pins()
 
     def create_pins(self):
         input_pins, output_pins = Circuit.get_pin_counts(self.node_type)

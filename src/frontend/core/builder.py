@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-from core.circuit import Circuit
+from frontend.core.circuit import Circuit
 
 def export_to_xml(circuit: Circuit, filepath: str):
     """
@@ -30,12 +30,14 @@ def export_to_xml(circuit: Circuit, filepath: str):
         )
 
     connections_elem = ET.SubElement(root, "connections")
-    for out_id, in_id in circuit.connections:
+    for out_id, out_pin, in_id, in_pin in circuit.connections:
         ET.SubElement(
             connections_elem,
             "connection",
             from_node=str(out_id),
-            to_node=str(in_id)
+            from_pin=str(out_pin),
+            to_node=str(in_id),
+            to_pin=str(in_pin)
         )
 
     tree = ET.ElementTree(root)
@@ -63,8 +65,10 @@ def import_from_xml(filepath: str) -> Circuit:
 
     for conn_elem in root.find("connections"):
         out_id = int(conn_elem.attrib["from_node"])
+        out_pin = int(conn_elem.attrib.get("from_pin", 0))
         in_id = int(conn_elem.attrib["to_node"])
-        circuit.connections.append((out_id, in_id))
+        in_pin = int(conn_elem.attrib.get("to_pin", 0))
+        circuit.connections.append((out_id, out_pin, in_id, in_pin))
 
     print(f"Схема загружена из {filepath}")
     return circuit
