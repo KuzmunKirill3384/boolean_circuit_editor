@@ -8,7 +8,7 @@ from frontend.core.circuit import Circuit
 class PinItem(QGraphicsEllipseItem):
     def __init__(self, node_item, pin_index, is_input, settings_manager=None):
         self.settings_manager = settings_manager or SettingsManager()
-        size = 8
+        size = 10
         super().__init__(-size/2, -size/2, size, size)
         self.node_item = node_item
         self.pin_index = pin_index
@@ -28,7 +28,6 @@ class PinItem(QGraphicsEllipseItem):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.scene():
-            # Safely call handler without calling super() to avoid accessing deleted object
             self.scene().on_pin_clicked(self.node_item.node_id, self.pin_index, self.is_input)
             event.accept()
             return
@@ -60,7 +59,6 @@ class NodeItem(QGraphicsRectItem):
         input_pins, output_pins = Circuit.get_pin_counts(self.node_type)
         width, height = self.settings_manager.get_node_size()
         
-        # Input pins on left
         for i in range(input_pins):
             y_offset = (i - (input_pins - 1) / 2) * 20
             pin = PinItem(self, i, True, self.settings_manager)
@@ -68,7 +66,6 @@ class NodeItem(QGraphicsRectItem):
             pin.setParentItem(self)
             self.pins.append(pin)
         
-        # Output pins on right
         for i in range(output_pins):
             y_offset = (i - (output_pins - 1) / 2) * 20
             pin = PinItem(self, i, False, self.settings_manager)
@@ -92,17 +89,15 @@ class NodeItem(QGraphicsRectItem):
             pen_color = Qt.GlobalColor.red
         painter.setPen(QPen(pen_color, 2))
 
-        # Draw different shapes based on node type
+        
         if self.node_type.upper() == "AND":
-            # Draw AND gate symbol (triangle with &)
             painter.drawRoundedRect(self.rect(), 8, 8)
             painter.setPen(Qt.GlobalColor.white)
             font = self.settings_manager.get_label_font()
-            font.setPointSize(font.pointSize() + 4)  # Larger for symbol
+            font.setPointSize(font.pointSize() + 4)  
             painter.setFont(font)
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "∧")
         elif self.node_type.upper() == "OR":
-            # Draw OR gate symbol (curved shape)
             painter.drawRoundedRect(self.rect(), 8, 8)
             painter.setPen(Qt.GlobalColor.white)
             font = self.settings_manager.get_label_font()
@@ -110,7 +105,6 @@ class NodeItem(QGraphicsRectItem):
             painter.setFont(font)
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "∨")
         elif self.node_type.upper() == "XOR":
-            # Draw XOR gate symbol
             painter.drawRoundedRect(self.rect(), 8, 8)
             painter.setPen(Qt.GlobalColor.white)
             font = self.settings_manager.get_label_font()
@@ -119,7 +113,6 @@ class NodeItem(QGraphicsRectItem):
             text_rect = self.rect().adjusted(0, 0, 0, -7)
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, "⊕")
         elif self.node_type.upper() == "EQUAL":
-            # Draw EQUAL gate symbol
             painter.drawRoundedRect(self.rect(), 8, 8)
             painter.setPen(Qt.GlobalColor.white)
             font = self.settings_manager.get_label_font()
@@ -128,7 +121,6 @@ class NodeItem(QGraphicsRectItem):
             text_rect = self.rect().adjusted(0, 0, 0, -7)
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, "=")
         elif self.node_type.upper() == "IN":
-            # Draw input node (rectangle with arrow)
             painter.drawRoundedRect(self.rect(), 8, 8)
             painter.setPen(Qt.GlobalColor.white)
             font = self.settings_manager.get_label_font()
@@ -136,7 +128,6 @@ class NodeItem(QGraphicsRectItem):
             painter.setFont(font)
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "▶")
         elif self.node_type.upper() == "OUT":
-            # Draw output node (rectangle with arrow)
             painter.drawRoundedRect(self.rect(), 8, 8)
             painter.setPen(Qt.GlobalColor.white)
             font = self.settings_manager.get_label_font()
@@ -144,7 +135,6 @@ class NodeItem(QGraphicsRectItem):
             painter.setFont(font)
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "◀")
         elif self.node_type.upper() == "CONST_0":
-            # Draw constant 0 node
             painter.drawRoundedRect(self.rect(), 8, 8)
             painter.setPen(Qt.GlobalColor.white)
             font = self.settings_manager.get_label_font()
@@ -152,7 +142,6 @@ class NodeItem(QGraphicsRectItem):
             painter.setFont(font)
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "0")
         elif self.node_type.upper() == "CONST_1":
-            # Draw constant 1 node
             painter.drawRoundedRect(self.rect(), 8, 8)
             painter.setPen(Qt.GlobalColor.white)
             font = self.settings_manager.get_label_font()
@@ -160,7 +149,6 @@ class NodeItem(QGraphicsRectItem):
             painter.setFont(font)
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "1")
         else:
-            # Default: draw rounded rect with text
             painter.drawRoundedRect(self.rect(), 8, 8)
             font = self.settings_manager.get_label_font()
             painter.setFont(font)
@@ -194,26 +182,20 @@ class ConnectionLine(QGraphicsLineItem):
         self.update_line()
 
     def hoverEnterEvent(self, event):
-        """При наведении мыши на соединение"""
         if self.scene_ref and self.scene_ref.mode == "disconnect":
-            # В режиме отключения линия становится красной
             self.setPen(QPen(QColor("#ff0000"), 3))
         else:
-            # В других режимах - оранжевая для выделения
             self.setPen(QPen(QColor("#ffa500"), 3))
         self.is_hovered = True
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
-        """При отведении мыши от соединения"""
         self.is_hovered = False
         self.update_pen()
         super().hoverLeaveEvent(event)
 
     def mousePressEvent(self, event):
-        """При клике на соединение"""
         if self.scene_ref and self.scene_ref.mode == "disconnect":
-            # Отключить соединение в режиме disconnect
             success = self.scene_ref.controller.disconnect_pins(
                 self.from_pin.node_item.node_id,
                 self.from_pin.pin_index,
@@ -228,7 +210,7 @@ class ConnectionLine(QGraphicsLineItem):
 
     def update_pen(self):
         if self.is_hovered:
-            return  # Не перезаписываем цвет hover
+            return  
         color = self.settings_manager.get_line_color()
         self.setPen(QPen(color, 2))
 
@@ -275,25 +257,25 @@ class CircuitScene(QGraphicsScene):
             self.temp_line = None
 
     def on_pin_clicked(self, node_id, pin_index, is_input):
-        # Обработка режима подключения
+
         if self.mode == "connect":
             if self.connect_source_id is None:
-                # Start connection
+              
                 if is_input:
-                    return  # Can't start from input pin
+                    return  
                 self.connect_source_id = (node_id, pin_index, is_input)
             else:
-                # Complete connection
+                
                 source_node, source_pin, source_is_input = self.connect_source_id
                 if source_node == node_id and source_pin == pin_index:
-                    return  # Same pin
-                
+                    return  
+            
                 if not is_input:
-                    return  # Must connect to input pin
+                    return 
                 
                 success, message = self.controller.connect_pins(source_node, source_pin, node_id, pin_index)
                 if success:
-                    # Schedule sync_scene asynchronously to avoid deleting objects during event handling
+    
                     QTimer.singleShot(0, self.sync_scene)
                 
                 self.connect_source_id = None
@@ -301,24 +283,21 @@ class CircuitScene(QGraphicsScene):
                     self.removeItem(self.temp_line)
                     self.temp_line = None
             return
-        
-        # Обработка режима отключения
+
         if self.mode == "disconnect":
             if self.connect_source_id is None:
-                # First click: select output pin
+                
                 if is_input:
-                    return  # Can't start from input pin
+                    return 
                 self.connect_source_id = (node_id, pin_index, is_input)
             else:
-                # Second click: select input pin and disconnect
+                
                 source_node, source_pin, source_is_input = self.connect_source_id
                 
                 if not is_input:
-                    # Clicked output pin again, reset
                     self.connect_source_id = (node_id, pin_index, is_input)
                     return
                 
-                # Try to disconnect
                 success = self.controller.disconnect_pins(source_node, source_pin, node_id, pin_index)
                 if success:
                     QTimer.singleShot(0, self.sync_scene)
@@ -359,17 +338,12 @@ class CircuitScene(QGraphicsScene):
     def apply_settings(self):
         bg_color = self.settings_manager.get_background_color()
         self.setBackgroundBrush(QBrush(bg_color))
-        # Пересинхронизировать сцену для применения новых размеров и цветов
         self.sync_scene()
 
     def on_node_moved(self, node_id, old_x, old_y, new_x, new_y):
         self.controller.move_node(node_id, old_x, old_y, new_x, new_y)
         for line in self.lines:
             line.update_line()
-
-    def validate_connection(self, out_id, in_id):
-        # Legacy, now handled in circuit
-        return self.controller.circuit.validate_connection(out_id, 0, in_id, 0)
 
     def highlight_nodes(self, node_ids, selected_node_id=None):
         selected_node_id = selected_node_id
@@ -397,7 +371,6 @@ class CircuitScene(QGraphicsScene):
                 clicked_node = item
                 break
 
-        # Only handle "add" mode here. "connect" mode is handled by PinItem.mousePressEvent
         if self.mode == "add" and self.selected_gate and clicked_node is None:
             node_id = self.controller.add_node(self.selected_gate, scene_pos.x(), scene_pos.y())
             self.sync_scene()
