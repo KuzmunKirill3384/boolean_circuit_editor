@@ -30,10 +30,6 @@ class AppController:
         cmd = MoveNodeCommand(self.circuit, node_id, old_x, old_y, new_x, new_y)
         self.history.execute(cmd)
 
-    def connect_nodes(self, out_node_id, in_node_id):
-        cmd = ConnectCommand(self.circuit, out_node_id, in_node_id)
-        self.history.execute(cmd)
-
     def connect_pins(self, out_node_id, out_pin, in_node_id, in_pin):
         success, message = self.circuit.connect_pins(out_node_id, out_pin, in_node_id, in_pin)
         if success:

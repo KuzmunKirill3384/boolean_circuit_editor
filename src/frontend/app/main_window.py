@@ -107,13 +107,12 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.view)
 
     def init_docks(self):
-        # Properties dock
         self.properties_dock = QDockWidget("Properties", self)
         self.properties_panel = PropertiesPanel()
         self.properties_panel.properties_changed.connect(self.on_properties_changed)
         self.properties_dock.setWidget(self.properties_panel)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.properties_dock)
-        self.properties_dock.hide()  # Initially hidden
+        self.properties_dock.hide() 
 
         self.truth_table_dock = QDockWidget("Таблица истинности", self)
 
@@ -287,7 +286,6 @@ class MainWindow(QMainWindow):
                 self.truth_table_table.setItem(r, c, item)
 
     def update_fixed_inputs_panel(self):
-        """Update the list of available input nodes for fixed value selection"""
         while self.fixed_inputs_layout.rowCount() > 0:
             self.fixed_inputs_layout.removeRow(0)
         self.input_value_controls = {}
@@ -303,11 +301,9 @@ class MainWindow(QMainWindow):
             self.fixed_inputs_layout.addRow(QLabel(f"IN_{nid}"), combo)
 
     def get_fixed_input_values(self):
-        """Get dictionary of fixed input values from UI controls"""
         return {nid: int(combo.currentText()) for nid, combo in self.input_value_controls.items()}
 
     def on_evaluate_clicked(self):
-        """Evaluate circuit with fixed input values"""
         self.update_fixed_inputs_panel()
         values = self.get_fixed_input_values()
         if not values:
@@ -317,7 +313,6 @@ class MainWindow(QMainWindow):
         try:
             report = self.controller.get_evaluation_report(values)
             if report and "row" in report:
-                # Get output nodes
                 output_nodes = [n["id"] for n in self.controller.circuit.get_nodes() if n["type"].upper() == "OUT"]
                 result_text = "Результаты: "
                 for out_id in output_nodes:
@@ -330,7 +325,6 @@ class MainWindow(QMainWindow):
             self.eval_result_label.setText(f"Ошибка оценки: {str(e)}")
 
     def on_simplify_clicked(self):
-        """Simplify circuit with fixed input values"""
         self.update_fixed_inputs_panel()
         values = self.get_fixed_input_values()
         if not values:
