@@ -43,11 +43,7 @@ class AppController:
             cmd = DisconnectPinsCommand(self.circuit, out_node_id, out_pin, in_node_id, in_pin)
             self.history.execute(cmd)
         return success
-
-    def disconnect_nodes(self, out_node_id, in_node_id):
-        cmd = DisconnectCommand(self.circuit, out_node_id, in_node_id)
-        self.history.execute(cmd)
-
+    
     def undo(self):
         return self.history.undo()
 
@@ -130,7 +126,6 @@ class AppController:
             pass
 
     def evaluate_circuit(self, input_values):
-        """Evaluate circuit for given input values"""
         try:
             from backend.logic.truth_table import evaluate_circuit
             return evaluate_circuit(self.circuit, input_values)
@@ -138,13 +133,10 @@ class AppController:
             return {}
 
     def get_evaluation_report(self, input_values):
-        """Get detailed evaluation report"""
         try:
             report = {}
-            # Try to get truth table and evaluate
             tt = self.get_truth_table()
             if tt and tt.get("inputs"):
-                # Find row that matches input values
                 for row in tt.get("rows", []):
                     match = True
                     for inp_id in tt.get("inputs", []):

@@ -181,16 +181,54 @@ class NodeItem(QGraphicsRectItem):
                 self.move_callback(self.node_id, old_x, old_y, new_x, new_y)
 
 class ConnectionLine(QGraphicsLineItem):
-    def __init__(self, from_pin, to_pin, settings_manager=None):
+    def __init__(self, from_pin, to_pin, scene=None, settings_manager=None):
         super().__init__()
         self.settings_manager = settings_manager or SettingsManager()
         self.from_pin = from_pin
         self.to_pin = to_pin
+        self.scene_ref = scene
         self.setZValue(-1)
+        self.setAcceptHoverEvents(True)
+        self.is_hovered = False
         self.update_pen()
         self.update_line()
 
+    def hoverEnterEvent(self, event):
+        """При наведении мыши на соединение"""
+        if self.scene_ref and self.scene_ref.mode == "disconnect":
+            # В режиме отключения линия становится красной
+            self.setPen(QPen(QColor("#ff0000"), 3))
+        else:
+            # В других режимах - оранжевая для выделения
+            self.setPen(QPen(QColor("#ffa500"), 3))
+        self.is_hovered = True
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event):
+        """При отведении мыши от соединения"""
+        self.is_hovered = False
+        self.update_pen()
+        super().hoverLeaveEvent(event)
+
+    def mousePressEvent(self, event):
+        """При клике на соединение"""
+        if self.scene_ref and self.scene_ref.mode == "disconnect":
+            # Отключить соединение в режиме disconnect
+            success = self.scene_ref.controller.disconnect_pins(
+                self.from_pin.node_item.node_id,
+                self.from_pin.pin_index,
+                self.to_pin.node_item.node_id,
+                self.to_pin.pin_index
+            )
+            if success:
+                QTimer.singleShot(0, self.scene_ref.sync_scene)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
     def update_pen(self):
+        if self.is_hovered:
+            return  # Не перезаписываем цвет hover
         color = self.settings_manager.get_line_color()
         self.setPen(QPen(color, 2))
 
@@ -229,33 +267,64 @@ class CircuitScene(QGraphicsScene):
             self.removeItem(self.temp_line)
             self.temp_line = None
 
+    def set_disconnect_mode(self):
+        self.mode = "disconnect"
+        self.connect_source_id = None
+        if self.temp_line:
+            self.removeItem(self.temp_line)
+            self.temp_line = None
+
     def on_pin_clicked(self, node_id, pin_index, is_input):
-        if self.mode != "connect":
+        # Обработка режима подключения
+        if self.mode == "connect":
+            if self.connect_source_id is None:
+                # Start connection
+                if is_input:
+                    return  # Can't start from input pin
+                self.connect_source_id = (node_id, pin_index, is_input)
+            else:
+                # Complete connection
+                source_node, source_pin, source_is_input = self.connect_source_id
+                if source_node == node_id and source_pin == pin_index:
+                    return  # Same pin
+                
+                if not is_input:
+                    return  # Must connect to input pin
+                
+                success, message = self.controller.connect_pins(source_node, source_pin, node_id, pin_index)
+                if success:
+                    # Schedule sync_scene asynchronously to avoid deleting objects during event handling
+                    QTimer.singleShot(0, self.sync_scene)
+                
+                self.connect_source_id = None
+                if self.temp_line:
+                    self.removeItem(self.temp_line)
+                    self.temp_line = None
             return
         
-        if self.connect_source_id is None:
-            # Start connection
-            if is_input:
-                return  # Can't start from input pin
-            self.connect_source_id = (node_id, pin_index, is_input)
-        else:
-            # Complete connection
-            source_node, source_pin, source_is_input = self.connect_source_id
-            if source_node == node_id and source_pin == pin_index:
-                return  # Same pin
-            
-            if not is_input:
-                return  # Must connect to input pin
-            
-            success, message = self.controller.connect_pins(source_node, source_pin, node_id, pin_index)
-            if success:
-                # Schedule sync_scene asynchronously to avoid deleting objects during event handling
-                QTimer.singleShot(0, self.sync_scene)
-            
-            self.connect_source_id = None
-            if self.temp_line:
-                self.removeItem(self.temp_line)
-                self.temp_line = None
+        # Обработка режима отключения
+        if self.mode == "disconnect":
+            if self.connect_source_id is None:
+                # First click: select output pin
+                if is_input:
+                    return  # Can't start from input pin
+                self.connect_source_id = (node_id, pin_index, is_input)
+            else:
+                # Second click: select input pin and disconnect
+                source_node, source_pin, source_is_input = self.connect_source_id
+                
+                if not is_input:
+                    # Clicked output pin again, reset
+                    self.connect_source_id = (node_id, pin_index, is_input)
+                    return
+                
+                # Try to disconnect
+                success = self.controller.disconnect_pins(source_node, source_pin, node_id, pin_index)
+                if success:
+                    QTimer.singleShot(0, self.sync_scene)
+                
+                self.connect_source_id = None
+            return
 
     def sync_scene(self):
         self.clear()
@@ -283,7 +352,7 @@ class CircuitScene(QGraphicsScene):
                     to_pin = pin
                     break
             if from_pin and to_pin:
-                line = ConnectionLine(from_pin, to_pin, settings_manager=self.settings_manager)
+                line = ConnectionLine(from_pin, to_pin, scene=self, settings_manager=self.settings_manager)
                 self.addItem(line)
                 self.lines.append(line)
 

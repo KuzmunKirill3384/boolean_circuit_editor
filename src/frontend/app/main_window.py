@@ -91,13 +91,11 @@ class MainWindow(QMainWindow):
         print("Выбран узел:", gate_type)
 
     def set_connect_mode(self, checked=False):
-        self.scene.mode = "connect"
-        self.scene.connect_source_id = None
+        self.scene.set_connect_mode()
         print("Режим связи включен")
 
     def set_disconnect_mode(self, checked=False):
-        self.scene.mode = "disconnect"
-        self.scene.connect_source_id = None
+        self.scene.set_disconnect_mode()
         print("Режим отключения включен")
 
 
