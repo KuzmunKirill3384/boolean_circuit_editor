@@ -1,4 +1,3 @@
-# frontend/commands/history.py
 
 class CommandHistory:
     def __init__(self):
@@ -84,33 +83,6 @@ class MoveNodeCommand:
 
     def undo(self):
         self.circuit.set_node_position(self.node_id, self.old_x, self.old_y)
-
-
-class ConnectCommand:
-    def __init__(self, circuit, out_node_id, in_node_id):
-        self.circuit = circuit
-        self.out_node_id = out_node_id
-        self.in_node_id = in_node_id
-
-    def execute(self):
-        self.circuit.connect_nodes(self.out_node_id, self.in_node_id)
-
-    def undo(self):
-        self.circuit.disconnect_nodes(self.out_node_id, self.in_node_id)
-
-
-class DisconnectCommand:
-    def __init__(self, circuit, out_node_id, in_node_id):
-        self.circuit = circuit
-        self.out_node_id = out_node_id
-        self.in_node_id = in_node_id
-
-    def execute(self):
-        self.circuit.disconnect_nodes(self.out_node_id, self.in_node_id)
-
-    def undo(self):
-        self.circuit.connect_nodes(self.out_node_id, self.in_node_id)
-
 
 class ConnectPinsCommand:
     def __init__(self, circuit, out_node_id, out_pin, in_node_id, in_pin):

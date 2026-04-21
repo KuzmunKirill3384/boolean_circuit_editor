@@ -4,8 +4,6 @@ from frontend.commands.history import (
     AddNodeCommand,
     RemoveNodeCommand,
     MoveNodeCommand,
-    ConnectCommand,
-    DisconnectCommand,
     ConnectPinsCommand,
     DisconnectPinsCommand,
 )
