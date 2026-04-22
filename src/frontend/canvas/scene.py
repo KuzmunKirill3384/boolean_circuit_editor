@@ -348,15 +348,23 @@ class CircuitScene(QGraphicsScene):
     def highlight_nodes(self, node_ids, selected_node_id=None):
         selected_node_id = selected_node_id
         for node_id, item in self.nodes.items():
-            if node_id in node_ids:
-                status = "selected" if node_id == selected_node_id else "affected"
-                item.set_highlight(status)
-            else:
-                item.set_highlight("default")
+            try:
+                if item.scene() is not None:
+                    if node_id in node_ids:
+                        status = "selected" if node_id == selected_node_id else "affected"
+                        item.set_highlight(status)
+                    else:
+                        item.set_highlight("default")
+            except RuntimeError:
+                pass
 
     def clear_highlights(self):
         for item in self.nodes.values():
-            item.set_highlight("default")
+            try:
+                if item.scene() is not None:
+                    item.set_highlight("default")
+            except RuntimeError:
+                pass
 
     def mousePressEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
