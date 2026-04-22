@@ -38,7 +38,6 @@ class SettingsDialog(QDialog):
         node_colors_group.setLayout(node_colors_layout)
         layout.addWidget(node_colors_group)
 
-        # Цвет линий
         line_color_group = QGroupBox("Цвет линий")
         line_color_layout = QHBoxLayout()
         self.line_color_button = QPushButton()
@@ -52,7 +51,6 @@ class SettingsDialog(QDialog):
         line_color_group.setLayout(line_color_layout)
         layout.addWidget(line_color_group)
 
-        # Цвет фона
         bg_color_group = QGroupBox("Цвет фона")
         bg_color_layout = QHBoxLayout()
         self.bg_color_button = QPushButton()
@@ -66,7 +64,6 @@ class SettingsDialog(QDialog):
         bg_color_group.setLayout(bg_color_layout)
         layout.addWidget(bg_color_group)
 
-        # Размер узлов
         size_group = QGroupBox("Размер узлов")
         size_layout = QHBoxLayout()
         size_layout.addWidget(QLabel("Ширина:"))
@@ -83,7 +80,6 @@ class SettingsDialog(QDialog):
         size_group.setLayout(size_layout)
         layout.addWidget(size_group)
 
-        # Шрифт подписей
         font_group = QGroupBox("Шрифт подписей")
         font_layout = QHBoxLayout()
         self.font_button = QPushButton("Выбрать шрифт")
@@ -98,7 +94,6 @@ class SettingsDialog(QDialog):
         font_group.setLayout(font_layout)
         layout.addWidget(font_group)
 
-        # Кнопки
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Apply)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)

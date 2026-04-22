@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QGroupBox, 
 from PyQt6.QtCore import pyqtSignal
 
 class PropertiesPanel(QWidget):
-    properties_changed = pyqtSignal(dict)  # Signal emitted when properties change
+    properties_changed = pyqtSignal(dict) 
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -11,13 +11,11 @@ class PropertiesPanel(QWidget):
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        
-        # Title
+
         title = QLabel("Properties")
         title.setStyleSheet("font-weight: bold; font-size: 14px;")
         layout.addWidget(title)
-        
-        # Node info group
+
         self.node_group = QGroupBox("Node")
         node_layout = QFormLayout()
         
@@ -33,14 +31,12 @@ class PropertiesPanel(QWidget):
         
         self.node_group.setLayout(node_layout)
         layout.addWidget(self.node_group)
-        
-        # Connections info
+
         self.connections_label = QLabel("Connections: -")
         layout.addWidget(self.connections_label)
         
         layout.addStretch()
-        
-        # Connect signals
+
         self.x_edit.editingFinished.connect(self.on_position_changed)
         self.y_edit.editingFinished.connect(self.on_position_changed)
 
@@ -51,8 +47,7 @@ class PropertiesPanel(QWidget):
             self.type_label.setText(node_data["type"])
             self.x_edit.setText(str(node_data["x"]))
             self.y_edit.setText(str(node_data["y"]))
-            
-            # Count connections
+
             connections = circuit.get_connections()
             input_count = sum(1 for c in connections if c[2] == node_data["id"])
             output_count = sum(1 for c in connections if c[0] == node_data["id"])
@@ -85,6 +80,5 @@ class PropertiesPanel(QWidget):
                     "new_y": new_y
                 })
         except ValueError:
-            # Invalid number, reset
             self.x_edit.setText(str(self.selected_node["x"]))
             self.y_edit.setText(str(self.selected_node["y"]))
