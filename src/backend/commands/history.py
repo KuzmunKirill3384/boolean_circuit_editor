@@ -1,4 +1,3 @@
-
 class CommandHistory:
     def __init__(self):
         self.undo_stack = []
@@ -83,6 +82,7 @@ class MoveNodeCommand:
 
     def undo(self):
         self.circuit.set_node_position(self.node_id, self.old_x, self.old_y)
+
 
 class ConnectPinsCommand:
     def __init__(self, circuit, out_node_id, out_pin, in_node_id, in_pin):

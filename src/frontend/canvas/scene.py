@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QGraphicsLineItem
 from PyQt6.QtGui import QPen, QBrush, QColor, QFont
 from PyQt6.QtCore import Qt, QTimer
 from frontend.common.settings import SettingsManager
-from frontend.core.circuit import Circuit
+from backend.model.circuit import Circuit
 
 
 class PinItem(QGraphicsEllipseItem):
@@ -17,14 +17,27 @@ class PinItem(QGraphicsEllipseItem):
         self.setPen(QPen(Qt.GlobalColor.black, 1))
         self.setAcceptHoverEvents(True)
         self.setToolTip(f"{'Input' if is_input else 'Output'} pin {pin_index}")
+        self._selected_for_link = False
 
     def hoverEnterEvent(self, event):
         self.setPen(QPen(Qt.GlobalColor.blue, 2))
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
-        self.setPen(QPen(Qt.GlobalColor.black, 1))
+        if self._selected_for_link:
+            self.setPen(QPen(QColor("#34c759"), 3))
+        else:
+            self.setPen(QPen(Qt.GlobalColor.black, 1))
         super().hoverLeaveEvent(event)
+
+    def set_link_selected(self, selected: bool):
+        self._selected_for_link = selected
+        if selected:
+            self.setPen(QPen(QColor("#34c759"), 3))
+            self.setBrush(QBrush(QColor("#d1fadf")))
+        else:
+            self.setPen(QPen(Qt.GlobalColor.black, 1))
+            self.setBrush(QBrush(Qt.GlobalColor.white))
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.scene():
@@ -234,24 +247,38 @@ class CircuitScene(QGraphicsScene):
         self.lines = []
         self.apply_settings()
 
+    def _clear_connect_selection(self):
+        if self.connect_source_id is None:
+            return
+        node_id, pin_index, is_input = self.connect_source_id
+        node = self.nodes.get(node_id)
+        if not node:
+            self.connect_source_id = None
+            return
+        for pin in node.pins:
+            if pin.pin_index == pin_index and pin.is_input == is_input:
+                pin.set_link_selected(False)
+                break
+        self.connect_source_id = None
+
     def set_selected_gate(self, gate_type):
         self.selected_gate = gate_type
         self.mode = "add"
-        self.connect_source_pin = None
+        self._clear_connect_selection()
         if self.temp_line:
             self.removeItem(self.temp_line)
             self.temp_line = None
 
     def set_connect_mode(self):
         self.mode = "connect"
-        self.connect_source_id = None
+        self._clear_connect_selection()
         if self.temp_line:
             self.removeItem(self.temp_line)
             self.temp_line = None
 
     def set_disconnect_mode(self):
         self.mode = "disconnect"
-        self.connect_source_id = None
+        self._clear_connect_selection()
         if self.temp_line:
             self.removeItem(self.temp_line)
             self.temp_line = None
@@ -264,6 +291,12 @@ class CircuitScene(QGraphicsScene):
                 if is_input:
                     return  
                 self.connect_source_id = (node_id, pin_index, is_input)
+                node = self.nodes.get(node_id)
+                if node:
+                    for pin in node.pins:
+                        if pin.pin_index == pin_index and pin.is_input == is_input:
+                            pin.set_link_selected(True)
+                            break
             else:
                 
                 source_node, source_pin, source_is_input = self.connect_source_id
@@ -278,7 +311,7 @@ class CircuitScene(QGraphicsScene):
     
                     QTimer.singleShot(0, self.sync_scene)
                 
-                self.connect_source_id = None
+                self._clear_connect_selection()
                 if self.temp_line:
                     self.removeItem(self.temp_line)
                     self.temp_line = None
@@ -302,7 +335,7 @@ class CircuitScene(QGraphicsScene):
                 if success:
                     QTimer.singleShot(0, self.sync_scene)
                 
-                self.connect_source_id = None
+                self._clear_connect_selection()
             return
 
     def sync_scene(self):
@@ -389,12 +422,19 @@ class CircuitScene(QGraphicsScene):
     def mouseDoubleClickEvent(self, event):
         super().mouseDoubleClickEvent(event)
 
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key.Key_Delete:
-            selected_items = self.selectedItems()
-            for item in selected_items:
-                if isinstance(item, NodeItem):
-                    self.controller.remove_node(item.node_id)
+    def delete_selected_nodes(self):
+        selected_items = self.selectedItems()
+        removed_any = False
+        for item in selected_items:
+            if isinstance(item, NodeItem):
+                self.controller.remove_node(item.node_id)
+                removed_any = True
+        if removed_any:
             self.sync_scene()
+        return removed_any
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
+            self.delete_selected_nodes()
             return
         super().keyPressEvent(event)

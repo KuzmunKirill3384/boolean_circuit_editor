@@ -1,3 +1,3 @@
 
 from .main_window import MainWindow
-from .app_controller import AppController
+from backend.application.app_controller import AppController

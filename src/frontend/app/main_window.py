@@ -1,12 +1,12 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QMenuBar, QMenu, QToolBar, QFileDialog,
     QDockWidget, QApplication, QLabel, QWidget, QVBoxLayout,
-    QHBoxLayout, QComboBox, QPushButton, QTableWidget, QTableWidgetItem,
-    QFormLayout, QMessageBox
+    QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem,
+    QMessageBox
 )
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
-from frontend.app.app_controller import AppController
+from backend.application.app_controller import AppController
 from frontend.canvas.scene import CircuitScene
 from frontend.canvas.view import CircuitView
 from frontend.panels.properties_panel import PropertiesPanel
@@ -47,20 +47,21 @@ class MainWindow(QMainWindow):
         edit_menu = menu_bar.addMenu("Правка")
         undo_action = QAction("Отмена", self)
         redo_action = QAction("Повтор", self)
+        delete_action = QAction("Удалить блок(и)", self)
+        delete_action.setShortcut("Delete")
         undo_action.triggered.connect(self.undo)
         redo_action.triggered.connect(self.redo)
+        delete_action.triggered.connect(self.delete_selected_nodes)
         edit_menu.addAction(undo_action)
         edit_menu.addAction(redo_action)
+        edit_menu.addSeparator()
+        edit_menu.addAction(delete_action)
 
         view_menu = menu_bar.addMenu("Вид")
         self.truth_table_action = QAction("Таблица истинности", self, checkable=True)
-        self.simplify_action = QAction("Упрощение", self, checkable=True)
-        self.polynomial_action = QAction("Полиномы", self, checkable=True)
         self.settings_action = QAction("Настройки", self)
 
         view_menu.addAction(self.truth_table_action)
-        view_menu.addAction(self.simplify_action)
-        view_menu.addAction(self.polynomial_action)
         view_menu.addSeparator()
         view_menu.addAction(self.settings_action)
 
@@ -70,11 +71,12 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("Элементы")
         self.addToolBar(toolbar)
 
-        for gate in ["AND", "OR", "XOR", "EQUAL", "CONST_0", "CONST_1"]:
+        for gate in ["IN", "OUT", "AND", "OR", "XOR", "EQUAL"]:
             action = QAction(gate, self)
             action.triggered.connect(lambda checked, g = gate: self.select_gate(g))
             toolbar.addAction(action)
 
+        toolbar.addSeparator()
         connect_action = QAction("Связь", self)
         connect_action.setCheckable(True)
         connect_action.triggered.connect(self.set_connect_mode)
@@ -85,24 +87,82 @@ class MainWindow(QMainWindow):
         disconnect_action.triggered.connect(self.set_disconnect_mode)
         toolbar.addAction(disconnect_action)
 
+        delete_action = QAction("Удалить", self)
+        delete_action.setShortcut("Delete")
+        delete_action.triggered.connect(self.delete_selected_nodes)
+        toolbar.addAction(delete_action)
+
+        toolbar.addSeparator()
+        show_table_action = QAction("Показать таблицу", self)
+        show_table_action.triggered.connect(self.show_truth_table)
+        toolbar.addAction(show_table_action)
+
+        help_action = QAction("Подсказка", self)
+        help_action.triggered.connect(self.show_controls_help)
+        toolbar.addAction(help_action)
+
     def select_gate(self, gate_type):
         self.scene.set_selected_gate(gate_type)
         self.scene.mode = "add"
-        print("Выбран узел:", gate_type)
+        self.statusBar().showMessage(
+            f"Выбран {gate_type}: кликните по пустому месту на доске для добавления",
+            5000,
+        )
 
     def set_connect_mode(self, checked=False):
         self.scene.set_connect_mode()
-        print("Режим связи включен")
+        self.statusBar().showMessage(
+            "Режим связи: кликните по выходному пину, затем по входному",
+            7000,
+        )
 
     def set_disconnect_mode(self, checked=False):
         self.scene.set_disconnect_mode()
-        print("Режим отключения включен")
+        self.statusBar().showMessage(
+            "Режим отключения: кликните по линии связи или по паре пинов",
+            7000,
+        )
+
+    def show_truth_table(self):
+        self.truth_table_action.setChecked(True)
+        self.truth_table_dock.show()
+        self.update_truth_table_panel()
+
+    def delete_selected_nodes(self):
+        if self.scene.delete_selected_nodes():
+            self.statusBar().showMessage("Выбранные блоки удалены", 3000)
+            self.update_truth_table_panel()
+        else:
+            self.statusBar().showMessage("Нет выбранных блоков для удаления", 3000)
+
+    def show_controls_help(self):
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Подсказка по управлению")
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setStyleSheet(
+            "QLabel { min-width: 560px; font-size: 13px; }"
+            "QPushButton { min-width: 120px; padding: 6px 14px; }"
+        )
+        msg.setText(
+            "<h3>Быстрый старт</h3>"
+            "<p><b>1.</b> Выберите элемент (<code>IN/OUT/AND/OR/XOR/EQUAL</code>) и кликните по доске.</p>"
+            "<p><b>2.</b> Нажмите <b>Связь</b>: выходной пин -> входной пин.</p>"
+            "<p><b>3.</b> Нажмите <b>Отключить</b> и кликните по линии для удаления.</p>"
+            "<hr>"
+            "<p><b>Клавиатура:</b></p>"
+            "<p>Стрелки — движение по доске<br>"
+            "<code>+</code>/<code>-</code> — масштаб<br>"
+            "<code>Del</code>/<code>Backspace</code> — удалить выбранные блоки</p>"
+        )
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.exec()
 
 
     def init_central(self):
         self.scene = CircuitScene(self.controller)
         self.view = CircuitView(self.scene)
         self.setCentralWidget(self.view)
+        self.view.setFocus()
 
     def init_docks(self):
         self.properties_dock = QDockWidget("Properties", self)
@@ -118,10 +178,7 @@ class MainWindow(QMainWindow):
         dock_layout = QVBoxLayout()
 
         controls_layout = QHBoxLayout()
-        controls_layout.addWidget(QLabel("Режим:"))
-        self.truth_table_mode = QComboBox()
-        self.truth_table_mode.addItems(["Схема", "По элементу"])
-        controls_layout.addWidget(self.truth_table_mode)
+        controls_layout.addWidget(QLabel("Таблица всей схемы"))
         controls_layout.addStretch()
         self.refresh_truth_table_button = QPushButton("Обновить")
         controls_layout.addWidget(self.refresh_truth_table_button)
@@ -130,50 +187,27 @@ class MainWindow(QMainWindow):
         self.truth_table_info = QLabel("Выберите режим и узел")
         dock_layout.addWidget(self.truth_table_info)
 
-        self.polynomial_label = QLabel("Полином: не выбран узел")
-        self.polynomial_label.setWordWrap(True)
-        self.polynomial_label.hide()
-        dock_layout.addWidget(self.polynomial_label)
-
         self.truth_table_table = QTableWidget()
         dock_layout.addWidget(self.truth_table_table)
-
-        self.fixed_inputs_label = QLabel("Фиксированные входы")
-        dock_layout.addWidget(self.fixed_inputs_label)
-        self.fixed_inputs_layout = QFormLayout()
-        self.fixed_inputs_widget = QWidget()
-        self.fixed_inputs_widget.setLayout(self.fixed_inputs_layout)
-        dock_layout.addWidget(self.fixed_inputs_widget)
-
-        self.evaluate_button = QPushButton("Оценить")
-        self.simplify_button = QPushButton("Упростить")
-        actions_layout = QHBoxLayout()
-        actions_layout.addWidget(self.evaluate_button)
-        actions_layout.addWidget(self.simplify_button)
-        dock_layout.addLayout(actions_layout)
-
-        self.eval_result_label = QLabel("")
-        dock_layout.addWidget(self.eval_result_label)
 
         dock_widget.setLayout(dock_layout)
         self.truth_table_dock.setWidget(dock_widget)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.truth_table_dock)
-        self.truth_table_dock.hide()
-
-        self.evaluate_button.clicked.connect(self.on_evaluate_clicked)
-        self.simplify_button.clicked.connect(self.on_simplify_clicked)
+        self.truth_table_action.setChecked(True)
+        self.truth_table_dock.show()
 
         self.truth_table_action.toggled.connect(self.truth_table_dock.setVisible)
         self.truth_table_action.toggled.connect(lambda visible: self.update_truth_table_panel())
-        self.polynomial_action.toggled.connect(self.on_polynomial_toggled)
-        self.truth_table_mode.currentIndexChanged.connect(self.update_truth_table_panel)
         self.refresh_truth_table_button.clicked.connect(self.update_truth_table_panel)
 
         self.selected_node_id = None
         self.scene.selectionChanged.connect(self.on_scene_selection_changed)
 
     def on_scene_selection_changed(self):
-        selected_items = self.scene.selectedItems()
+        try:
+            selected_items = self.scene.selectedItems()
+        except RuntimeError:
+            return
         if len(selected_items) == 1:
             item = selected_items[0]
             if hasattr(item, "node_id"):
@@ -188,49 +222,11 @@ class MainWindow(QMainWindow):
             self.selected_node_id = None
             self.properties_panel.set_selected_node(None, self.controller.circuit)
         self.update_truth_table_panel()
-        self.update_polynomial_display()
 
     def on_properties_changed(self, data):
         if data["action"] == "move_node":
             self.controller.move_node(data["node_id"], data["old_x"], data["old_y"], data["new_x"], data["new_y"])
             self.scene.sync_scene()
-
-    def update_polynomial_display(self):
-        if not self.polynomial_action.isChecked():
-            self.polynomial_label.hide()
-            return
-
-        if self.selected_node_id is None:
-            polynomials = self.controller.get_polynomials()
-            text = "Полиномы схемы: "
-            if isinstance(polynomials, str):
-                text += polynomials
-            elif isinstance(polynomials, dict):
-                text += str(polynomials)
-            elif polynomials is None:
-                text += "не найдены"
-            else:
-                text += str(polynomials)
-            self.polynomial_label.setText(text)
-            self.polynomial_label.show()
-            return
-
-        poly = self.controller.get_polynomial_for_node(self.selected_node_id)
-        if isinstance(poly, str):
-            text = f"Полином узла #{self.selected_node_id}: {poly}"
-        elif isinstance(poly, dict):
-            text = f"Полином узла #{self.selected_node_id}: {poly}"
-        elif poly is None:
-            text = f"Полином узла #{self.selected_node_id}: не определен"
-        else:
-            text = f"Полином узла #{self.selected_node_id}: {poly}"
-        self.polynomial_label.setText(text)
-        self.polynomial_label.show()
-
-    def on_polynomial_toggled(self, checked):
-        self.polynomial_label.setVisible(checked)
-        if checked:
-            self.update_polynomial_display()
 
     def undo(self):
         if self.controller.undo():
@@ -244,33 +240,21 @@ class MainWindow(QMainWindow):
         if not self.truth_table_action.isChecked():
             return
 
-        mode = self.truth_table_mode.currentText()
-        if mode == "Схема":
-            table = self.controller.get_truth_table()
-            if not table.get("inputs") and not table.get("outputs"):
-                self.truth_table_info.setText("Схема не содержит входов и/или выходов")
-                self.truth_table_table.clear()
-                self.scene.clear_highlights()
-                return
-            self.truth_table_info.setText("Таблица истинности для всей схемы")
-            headers = [f"IN_{nid}" for nid in table.get("inputs", [])] + [f"OUT_{nid}" for nid in table.get("outputs", [])]
-            self._fill_truth_table(headers, table.get("rows", []))
+        table = self.controller.get_truth_table()
+        if table.get("error"):
+            self.truth_table_info.setText(f"Ошибка: {table['error']}")
+            self.truth_table_table.clear()
             self.scene.clear_highlights()
-        else:
-            if self.selected_node_id is None:
-                self.truth_table_info.setText("Режим по элементу: выберите узел на схеме")
-                self.truth_table_table.clear()
-                self.scene.clear_highlights()
-                return
-            table = self.controller.get_truth_table_for_node(self.selected_node_id)
-            inputs = table.get("inputs", []) if isinstance(table, dict) else []
-            node_id = table.get("node_id", self.selected_node_id) if isinstance(table, dict) else self.selected_node_id
-            headers = [f"IN_{nid}" for nid in inputs] + [f"Node_{node_id}"]
-            self.truth_table_info.setText(f"Таблица истинности узла #{self.selected_node_id}")
-            self._fill_truth_table(headers, table.get("rows", []) if isinstance(table, dict) else [])
-            affected = self.controller.get_affected_nodes(self.selected_node_id)
-            self.scene.highlight_nodes(affected + [self.selected_node_id])
-        self.update_polynomial_display()
+            return
+        if not table.get("inputs") and not table.get("outputs"):
+            self.truth_table_info.setText("Схема не содержит входов и/или выходов")
+            self.truth_table_table.clear()
+            self.scene.clear_highlights()
+            return
+        self.truth_table_info.setText("Таблица истинности для всей схемы")
+        headers = [f"IN_{nid}" for nid in table.get("inputs", [])] + [f"OUT_{nid}" for nid in table.get("outputs", [])]
+        self._fill_truth_table(headers, table.get("rows", []))
+        self.scene.clear_highlights()
 
     def _fill_truth_table(self, headers, rows):
         self.truth_table_table.clear()
@@ -283,60 +267,6 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(str(value))
                 self.truth_table_table.setItem(r, c, item)
 
-    def update_fixed_inputs_panel(self):
-        while self.fixed_inputs_layout.rowCount() > 0:
-            self.fixed_inputs_layout.removeRow(0)
-        self.input_value_controls = {}
-
-        input_nodes = [n["id"] for n in self.controller.circuit.get_nodes() if n["type"].upper() == "IN"]
-        if not input_nodes:
-            return
-        
-        for nid in sorted(input_nodes):
-            combo = QComboBox()
-            combo.addItems(["0", "1"])
-            self.input_value_controls[nid] = combo
-            self.fixed_inputs_layout.addRow(QLabel(f"IN_{nid}"), combo)
-
-    def get_fixed_input_values(self):
-        return {nid: int(combo.currentText()) for nid, combo in self.input_value_controls.items()}
-
-    def on_evaluate_clicked(self):
-        self.update_fixed_inputs_panel()
-        values = self.get_fixed_input_values()
-        if not values:
-            self.eval_result_label.setText("Нет входов для оценки")
-            return
-        
-        try:
-            report = self.controller.get_evaluation_report(values)
-            if report and "row" in report:
-                output_nodes = [n["id"] for n in self.controller.circuit.get_nodes() if n["type"].upper() == "OUT"]
-                result_text = "Результаты: "
-                for out_id in output_nodes:
-                    val = report["row"].get(f"OUT_{out_id}", "?")
-                    result_text += f"OUT_{out_id}={val} "
-                self.eval_result_label.setText(result_text)
-            else:
-                self.eval_result_label.setText("Не удалось оценить схему")
-        except Exception as e:
-            self.eval_result_label.setText(f"Ошибка оценки: {str(e)}")
-
-    def on_simplify_clicked(self):
-        self.update_fixed_inputs_panel()
-        values = self.get_fixed_input_values()
-        if not values:
-            self.eval_result_label.setText("Нет входов для упрощения")
-            return
-        
-        try:
-            self.controller.simplify_circuit(values)
-            self.scene.sync_scene()
-            self.update_truth_table_panel()
-            self.eval_result_label.setText("Схема упрощена!")
-        except Exception as e:
-            self.eval_result_label.setText(f"Ошибка упрощения: {str(e)}")
-
     def open_file(self):
         filepath, _ = QFileDialog.getOpenFileName(self, "Открыть схему", "", "XML Files (*.xml)")
         if filepath:
@@ -344,7 +274,6 @@ class MainWindow(QMainWindow):
                 self.controller.load_circuit(filepath)
                 self.scene.sync_scene()
                 self.update_truth_table_panel()
-                self.update_polynomial_display()
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить файл: {e}")
 
