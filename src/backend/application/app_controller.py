@@ -92,7 +92,7 @@ class AppController:
 
         return get_polynomial_for_node(self.circuit, node_id)
 
-    def get_removable_count_per_input(self, input_values):
+    def get_removable_count_per_input(self, input_values=None):
         from backend.logic.truth_table import get_removable_count_per_input
 
         return get_removable_count_per_input(self.circuit, input_values)
