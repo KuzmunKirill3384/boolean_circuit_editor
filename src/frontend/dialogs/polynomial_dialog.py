@@ -1,0 +1,174 @@
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QTreeWidget, QTreeWidgetItem,
+    QGroupBox, QTextEdit, QMessageBox, QDialogButtonBox
+)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
+
+
+class PolynomialDialog(QDialog):
+    """Dialog for displaying polynomial representations of circuit nodes"""
+    
+    def __init__(self, parent=None, controller=None, circuit=None):
+        super().__init__(parent)
+        self.controller = controller
+        self.circuit = circuit
+        self.setWindowTitle("Полиномиальное представление")
+        self.resize(800, 600)
+        
+        self.init_ui()
+        self.load_polynomials()
+    
+    def init_ui(self):
+        """Initialize the UI"""
+        layout = QVBoxLayout()
+        
+        # Title
+        title_label = QLabel("Полиномиальное представление логических элементов")
+        title_label.setStyleSheet("font-weight: bold; font-size: 13px;")
+        layout.addWidget(title_label)
+        
+        # Info text
+        info_label = QLabel(
+            "Обозначения: * = AND, + = OR, ⊕ = XOR, = = EQUAL, x№ = вход №"
+        )
+        info_label.setStyleSheet("color: gray; font-size: 10px; margin-bottom: 10px;")
+        layout.addWidget(info_label)
+        
+        # Main content - split into tree view and details
+        content_layout = QHBoxLayout()
+        
+        # Left side - tree of nodes
+        left_layout = QVBoxLayout()
+        left_group = QGroupBox("Элементы схемы")
+        
+        self.tree_widget = QTreeWidget()
+        self.tree_widget.setHeaderLabels(["Элемент", "Тип"])
+        self.tree_widget.setMaximumWidth(300)
+        self.tree_widget.itemSelectionChanged.connect(self.on_node_selected)
+        
+        left_layout.addWidget(self.tree_widget)
+        left_group.setLayout(left_layout)
+        content_layout.addWidget(left_group)
+        
+        # Right side - polynomial details
+        right_layout = QVBoxLayout()
+        right_group = QGroupBox("Полиномиальное представление")
+        
+        self.details_label = QLabel("Выберите элемент для просмотра его полинома")
+        self.details_label.setStyleSheet("color: gray;")
+        self.details_label.setWordWrap(True)
+        
+        self.polynomial_text = QTextEdit()
+        self.polynomial_text.setReadOnly(True)
+        self.polynomial_text.setFont(QFont("Courier", 10))
+        
+        right_layout.addWidget(self.details_label)
+        right_layout.addWidget(self.polynomial_text)
+        right_group.setLayout(right_layout)
+        content_layout.addWidget(right_group)
+        
+        layout.addLayout(content_layout)
+        
+        # Buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+        self.setLayout(layout)
+    
+    def load_polynomials(self):
+        """Load and display polynomials for all nodes"""
+        if not self.controller or not self.circuit:
+            return
+        
+        try:
+            # Get all polynomials from backend
+            polynomials = self.controller.get_polynomials()
+            
+            # Build tree structure
+            self.tree_widget.clear()
+            self.polynomials = polynomials
+            
+            # Group nodes by type
+            nodes_by_type = {}
+            for node in self.circuit.get_nodes():
+                node_type = node["type"]
+                if node_type not in nodes_by_type:
+                    nodes_by_type[node_type] = []
+                nodes_by_type[node_type].append(node)
+            
+            # Create tree items organized by type
+            type_order = ["IN", "AND", "OR", "XOR", "EQUAL", "CONST_0", "CONST_1", "OUT"]
+            
+            for node_type in type_order:
+                if node_type in nodes_by_type:
+                    # Create type group
+                    type_item = QTreeWidgetItem([node_type, ""])
+                    type_item.setFont(0, QFont("Arial", 10, QFont.Weight.Bold))
+                    self.tree_widget.addTopLevelItem(type_item)
+                    
+                    # Add nodes of this type
+                    for node in nodes_by_type[node_type]:
+                        node_id = node["id"]
+                        polynomial = polynomials.get(node_id, "?")
+                        
+                        # Create node item
+                        node_label = f"#{node_id}"
+                        node_item = QTreeWidgetItem([node_label, node_type])
+                        node_item.setData(0, Qt.ItemDataRole.UserRole, node_id)
+                        type_item.addChild(node_item)
+            
+            # Expand all items
+            self.tree_widget.expandAll()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить полиномы: {e}")
+    
+    def on_node_selected(self):
+        """Handle node selection in tree"""
+        selected_items = self.tree_widget.selectedItems()
+        if not selected_items:
+            return
+        
+        item = selected_items[0]
+        node_id = item.data(0, Qt.ItemDataRole.UserRole)
+        
+        if node_id is None:
+            # Top-level type item selected
+            self.details_label.setText("Выберите конкретный элемент")
+            self.polynomial_text.clear()
+            return
+        
+        # Get node details
+        node = self.circuit.get_node(node_id)
+        polynomial = self.polynomials.get(node_id, "?")
+        
+        if not node:
+            return
+        
+        # Display details
+        details_text = (
+            f"Элемент: #{node_id}\n"
+            f"Тип: {node['type']}\n"
+            f"Позиция: ({node['x']:.0f}, {node['y']:.0f})"
+        )
+        self.details_label.setText(details_text)
+        
+        # Display polynomial with better formatting
+        self.polynomial_text.setText(f"f_{node_id} = {polynomial}")
+    
+    def get_all_polynomials_text(self) -> str:
+        """Get all polynomials as formatted text"""
+        if not self.polynomials:
+            return ""
+        
+        output = []
+        for node_id in sorted(self.polynomials.keys()):
+            node = self.circuit.get_node(node_id)
+            if node:
+                node_type = node["type"]
+                poly = self.polynomials[node_id]
+                output.append(f"f_{node_id} ({node_type}): {poly}")
+        
+        return "\n".join(output)
