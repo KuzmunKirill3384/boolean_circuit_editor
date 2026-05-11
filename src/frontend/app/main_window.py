@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QMenuBar, QMenu, QToolBar, QFileDialog,
     QDockWidget, QApplication, QLabel, QWidget, QVBoxLayout,
     QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem,
-    QMessageBox
+    QMessageBox, QDialog
 )
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
@@ -11,6 +11,8 @@ from frontend.canvas.scene import CircuitScene
 from frontend.canvas.view import CircuitView
 from frontend.panels.properties_panel import PropertiesPanel
 from frontend.dialogs.settings_dialog import SettingsDialog
+from frontend.dialogs.simplification_dialog import SimplificationDialog
+from frontend.dialogs.polynomial_dialog import PolynomialDialog
 import sys
 
 
@@ -59,12 +61,18 @@ class MainWindow(QMainWindow):
 
         view_menu = menu_bar.addMenu("Вид")
         self.truth_table_action = QAction("Таблица истинности", self, checkable=True)
+        self.simplify_action = QAction("Упрощение схемы", self)
+        self.polynomial_action = QAction("Полиномиальное представление", self)
         self.settings_action = QAction("Настройки", self)
 
         view_menu.addAction(self.truth_table_action)
+        view_menu.addAction(self.simplify_action)
+        view_menu.addAction(self.polynomial_action)
         view_menu.addSeparator()
         view_menu.addAction(self.settings_action)
 
+        self.simplify_action.triggered.connect(self.show_simplification_dialog)
+        self.polynomial_action.triggered.connect(self.show_polynomial_dialog)
         self.settings_action.triggered.connect(self.show_settings)
 
     def init_toolbar(self):
@@ -287,4 +295,16 @@ class MainWindow(QMainWindow):
 
     def show_settings(self):
         dialog = SettingsDialog(self)
+        dialog.exec()
+
+    def show_simplification_dialog(self):
+        dialog = SimplificationDialog(self, self.controller, self.controller.circuit)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+
+            self.scene.sync_scene()
+            self.update_truth_table_panel()
+            self.statusBar().showMessage("Схема упрощена успешно", 3000)
+
+    def show_polynomial_dialog(self):
+        dialog = PolynomialDialog(self, self.controller, self.controller.circuit)
         dialog.exec()
