@@ -22,12 +22,11 @@ class PolynomialDialog(QDialog):
 
         layout = QVBoxLayout()
         
-        # Title
+ 
         title_label = QLabel("Полиномиальное представление логических элементов")
         title_label.setStyleSheet("font-weight: bold; font-size: 13px;")
         layout.addWidget(title_label)
-        
-        # Info text
+ 
         info_label = QLabel(
             "Обозначения: * = AND, + = OR, ⊕ = XOR, = = EQUAL, x№ = вход №"
         )
@@ -74,7 +73,7 @@ class PolynomialDialog(QDialog):
         self.setLayout(layout)
     
     def load_polynomials(self):
-        """Load and display polynomials for all nodes"""
+
         if not self.controller or not self.circuit:
             return
         
@@ -116,7 +115,7 @@ class PolynomialDialog(QDialog):
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить полиномы: {e}")
     
     def on_node_selected(self):
-        """Handle node selection in tree"""
+
         selected_items = self.tree_widget.selectedItems()
         if not selected_items:
             return
@@ -147,7 +146,7 @@ class PolynomialDialog(QDialog):
         self.polynomial_text.setText(f"f_{node_id} = {polynomial}")
     
     def get_all_polynomials_text(self) -> str:
-        """Get all polynomials as formatted text"""
+
         if not self.polynomials:
             return ""
         
