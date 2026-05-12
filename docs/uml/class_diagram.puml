@@ -1,0 +1,69 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class Circuit {
+  +nodes: list
+  +connections: list
+  +add_node(type, x, y): int
+  +remove_node(id)
+  +connect_pins(...): bool
+  +validate_structure(): (bool, str)
+}
+
+class AddNodeCommand {
+  -circuit: Circuit
+  -node_type: str
+  -x, y: float
+  +execute()
+  +undo()
+}
+
+class RemoveNodeCommand {
+  -circuit: Circuit
+  -node_id: int
+  -node_data: dict
+  +execute()
+  +undo()
+}
+
+class CommandHistory {
+  -undo_stack: list
+  -redo_stack: list
+  +execute(cmd)
+  +undo(): bool
+  +redo(): bool
+}
+
+class AppController {
+  -circuit: Circuit
+  -history: CommandHistory
+  +add_node(type, x, y): int
+  +undo(): bool
+  +get_truth_table(): dict
+  +simplify_circuit(inputs)
+  +save_circuit(path)
+  +load_circuit(path)
+}
+
+class XMLBuilder {
+  +export_to_xml(c: Circuit, path)
+  +import_from_xml(path): Circuit
+}
+
+class TruthTable {
+  +get_truth_table(c: Circuit): dict
+  +get_truth_table_for_node(c, node_id): dict
+  +get_affected_nodes(c, node_id): list
+  +get_polynomials(c): dict
+  +simplify(c, inputs): Circuit
+}
+
+Circuit <.. AddNodeCommand
+Circuit <.. RemoveNodeCommand
+CommandHistory o-- "0..*" AddNodeCommand
+CommandHistory o-- "0..*" RemoveNodeCommand
+AppController --> Circuit
+AppController --> CommandHistory
+AppController --> XMLBuilder
+AppController --> TruthTable
+@enduml

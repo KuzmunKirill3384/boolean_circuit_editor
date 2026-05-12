@@ -1,0 +1,22 @@
+@startuml
+actor Пользователь
+participant MainWindow
+participant CircuitScene
+participant AppController
+participant CommandHistory
+participant "AddNodeCommand" as CMD
+participant Circuit
+
+Пользователь -> MainWindow: выбирает элемент "AND"
+MainWindow -> CircuitScene: set_selected_gate("AND")
+Пользователь -> CircuitScene: клик на сцене
+CircuitScene -> AppController: add_node("AND", x, y)
+AppController -> CommandHistory: execute(cmd)
+CommandHistory -> CMD: execute()
+CMD -> Circuit: add_node("AND", x, y)
+Circuit --> CMD: node_id
+CMD --> CommandHistory: node_id
+CommandHistory --> AppController: node_id
+AppController --> CircuitScene: node_id
+CircuitScene -> CircuitScene: перерисовать сцену
+@enduml
