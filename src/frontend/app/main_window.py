@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QMenuBar, QMenu, QToolBar, QFileDialog,
     QDockWidget, QApplication, QLabel, QWidget, QVBoxLayout,
     QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem,
-    QMessageBox, QDialog
+    QMessageBox, QDialog, QButtonGroup, QRadioButton
 )
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
@@ -185,6 +185,30 @@ class MainWindow(QMainWindow):
         dock_widget = QWidget()
         dock_layout = QVBoxLayout()
 
+        # Mode selection buttons
+        mode_layout = QHBoxLayout()
+        mode_label = QLabel("Режим:")
+        mode_layout.addWidget(mode_label)
+        
+        self.truth_table_mode_group = QButtonGroup()
+        self.circuit_mode_radio = QRadioButton("Схема")
+        self.node_mode_radio = QRadioButton("По элементу")
+        
+        self.truth_table_mode_group.addButton(self.circuit_mode_radio, 0)
+        self.truth_table_mode_group.addButton(self.node_mode_radio, 1)
+        
+        mode_layout.addWidget(self.circuit_mode_radio)
+        mode_layout.addWidget(self.node_mode_radio)
+        mode_layout.addStretch()
+        
+        self.circuit_mode_radio.setChecked(True)
+        self.truth_table_mode = "circuit"  # "circuit" or "node"
+        
+        self.circuit_mode_radio.toggled.connect(self.on_circuit_mode_selected)
+        self.node_mode_radio.toggled.connect(self.on_node_mode_selected)
+        dock_layout.addLayout(mode_layout)
+
+        # Info and refresh controls
         controls_layout = QHBoxLayout()
         self.truth_table_mode_label = QLabel("Таблица всей схемы")
         controls_layout.addWidget(self.truth_table_mode_label)
@@ -232,6 +256,16 @@ class MainWindow(QMainWindow):
             self.properties_panel.set_selected_node(None, self.controller.circuit)
         self.update_truth_table_panel()
 
+    def on_circuit_mode_selected(self, checked):
+        if checked:
+            self.truth_table_mode = "circuit"
+            self.update_truth_table_panel()
+    
+    def on_node_mode_selected(self, checked):
+        if checked:
+            self.truth_table_mode = "node"
+            self.update_truth_table_panel()
+
     def on_properties_changed(self, data):
         if data["action"] == "move_node":
             self.controller.move_node(data["node_id"], data["old_x"], data["old_y"], data["new_x"], data["new_y"])
@@ -249,8 +283,35 @@ class MainWindow(QMainWindow):
         if not self.truth_table_action.isChecked():
             return
 
-        # If a node is selected, show its truth table with highlighting
-        if self.selected_node_id is not None:
+        # Show circuit mode table
+        if self.truth_table_mode == "circuit":
+            table = self.controller.get_truth_table()
+            if table.get("error"):
+                self.truth_table_info.setText(f"Ошибка: {table['error']}")
+                self.truth_table_table.clear()
+                self.scene.clear_highlights()
+                return
+            if not table.get("inputs") and not table.get("outputs"):
+                self.truth_table_info.setText("Схема не содержит входов и/или выходов")
+                self.truth_table_table.clear()
+                self.scene.clear_highlights()
+                return
+            self.truth_table_mode_label.setText("Таблица всей схемы")
+            self.truth_table_info.setText("")
+            headers = [f"IN_{nid}" for nid in table.get("inputs", [])] + [f"OUT_{nid}" for nid in table.get("outputs", [])]
+            self._fill_truth_table(headers, table.get("rows", []))
+            self.scene.clear_highlights()
+            return
+
+        # Show node mode table
+        if self.truth_table_mode == "node":
+            if self.selected_node_id is None:
+                self.truth_table_mode_label.setText("По элементу: выберите элемент на доске")
+                self.truth_table_info.setText("Пожалуйста, выберите элемент на доске для отображения его таблицы истинности")
+                self.truth_table_table.clear()
+                self.scene.clear_highlights()
+                return
+            
             node_data = self.controller.circuit.get_node(self.selected_node_id)
             if node_data:
                 table = self.controller.get_truth_table_for_node(self.selected_node_id)
@@ -267,7 +328,7 @@ class MainWindow(QMainWindow):
                 
                 # Update info label and mode label
                 node_type = node_data.get("type", "Unknown")
-                self.truth_table_mode_label.setText(f"Элемент: {node_type} (ID: {self.selected_node_id})")
+                self.truth_table_mode_label.setText(f"По элементу: {node_type} (ID: {self.selected_node_id})")
                 self.truth_table_info.setText(f"Влияющие элементы подсвечены оранжевым, сам элемент - зелёным")
                 
                 # Fill the table
@@ -277,24 +338,6 @@ class MainWindow(QMainWindow):
                 else:
                     self.truth_table_table.clear()
                 return
-        
-        # Otherwise, show the full circuit truth table
-        table = self.controller.get_truth_table()
-        if table.get("error"):
-            self.truth_table_info.setText(f"Ошибка: {table['error']}")
-            self.truth_table_table.clear()
-            self.scene.clear_highlights()
-            return
-        if not table.get("inputs") and not table.get("outputs"):
-            self.truth_table_info.setText("Схема не содержит входов и/или выходов")
-            self.truth_table_table.clear()
-            self.scene.clear_highlights()
-            return
-        self.truth_table_mode_label.setText("Таблица всей схемы")
-        self.truth_table_info.setText("Выберите элемент на доске для отображения его таблицы истинности")
-        headers = [f"IN_{nid}" for nid in table.get("inputs", [])] + [f"OUT_{nid}" for nid in table.get("outputs", [])]
-        self._fill_truth_table(headers, table.get("rows", []))
-        self.scene.clear_highlights()
 
     def _fill_truth_table(self, headers, rows):
         self.truth_table_table.clear()

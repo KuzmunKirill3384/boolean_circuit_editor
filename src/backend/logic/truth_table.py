@@ -203,7 +203,8 @@ def _polynomial_for_node(circuit: Any, node_id: int, memo: dict[int, str]) -> st
         expr = _polynomial_for_node(circuit, src[0], memo) if src else "?"
     else:
         args = [_polynomial_for_node(circuit, c[0], memo) for c in incoming]
-        op = {"AND": "*", "OR": "+", "XOR": "⊕", "EQUAL": "="}.get(t, t)
+        # Stable operator mapping: * (AND), + (OR), ^ (XOR), ~^ (EQUAL)
+        op = {"AND": "*", "OR": "+", "XOR": "^", "EQUAL": "~^"}.get(t, t)
         expr = f"({f' {op} '.join(args)})" if args else f"{t}(?)"
 
     memo[node_id] = expr
