@@ -1,6 +1,40 @@
 @startuml
 skinparam classAttributeIconSize 0
 
+abstract class SchemeComponent {
+  +accept(visitor)
+}
+
+abstract class CircuitNode {
+  +node_id: int
+  +node_type: str
+  +to_dict(): dict
+}
+
+class InputNode
+class AndNode
+class OutputNode
+
+abstract class CircuitVisitor {
+  +visit_circuit(circuit)
+  +visit_input(node)
+  +visit_and(node)
+  +visit_output(node)
+}
+
+class NodeRolesVisitor {
+  +input_ids: list
+  +output_ids: list
+}
+
+SchemeComponent <|-- CircuitNode
+CircuitNode <|-- InputNode
+CircuitNode <|-- AndNode
+CircuitNode <|-- OutputNode
+CircuitVisitor <|-- NodeRolesVisitor
+CircuitVisitor ..> CircuitNode : visits
+CircuitNode ..> CircuitVisitor : accept()
+
 class Circuit {
   +nodes: list
   +connections: list
@@ -62,8 +96,12 @@ Circuit <.. AddNodeCommand
 Circuit <.. RemoveNodeCommand
 CommandHistory o-- "0..*" AddNodeCommand
 CommandHistory o-- "0..*" RemoveNodeCommand
+Circuit o-- "0..*" CircuitNode : _nodes
+Circuit ..> CircuitVisitor : accept()
+
 AppController --> Circuit
 AppController --> CommandHistory
 AppController --> XMLBuilder
 AppController --> TruthTable
+TruthTable ..> NodeRolesVisitor : uses
 @enduml

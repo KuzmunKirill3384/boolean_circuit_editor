@@ -1,9 +1,22 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+from backend.model.elements import create_node
+from backend.model.node import CircuitNode
+
+if TYPE_CHECKING:
+    from backend.visitor.visitor import CircuitVisitor
+
+
 class Circuit:
+    """Контейнер схемы (Composite): узлы и связи между пинами."""
+
     ALLOWED_NODE_TYPES = {"AND", "OR", "XOR", "EQUAL", "IN", "OUT", "CONST_0", "CONST_1"}
 
     def __init__(self):
-        self.nodes = []
-        self.connections = []
+        self._nodes: list[CircuitNode] = []
+        self.connections: list[tuple[int, int, int, int]] = []
         self._next_node_id = 0
 
     @staticmethod
@@ -24,34 +37,72 @@ class Circuit:
     def is_supported_node_type(cls, node_type):
         return (node_type or "").upper() in cls.ALLOWED_NODE_TYPES
 
+    @property
+    def nodes(self) -> list[dict[str, Any]]:
+        """Совместимость: список узлов как dict (для XML и legacy-кода)."""
+        return [n.to_dict() for n in self._nodes]
+
+    @nodes.setter
+    def nodes(self, value: list[dict[str, Any]]) -> None:
+        self._nodes = [create_node(n) for n in value]
+
+    def accept(self, visitor: CircuitVisitor) -> None:
+        visitor.visit_circuit(self)
+
+    def iter_components(self) -> list[CircuitNode]:
+        return list(self._nodes)
+
+    def get_component(self, node_id: int) -> CircuitNode | None:
+        for node in self._nodes:
+            if node.node_id == node_id:
+                return node
+        return None
+
     def add_node(self, node_type, x, y):
         if not self.is_supported_node_type(node_type):
             raise ValueError(f"Unsupported node type: {node_type}")
-        node = {
-            "id": self._next_node_id,
-            "type": node_type.upper(),
-            "x": float(x),
-            "y": float(y),
-        }
-        self.nodes.append(node)
+        node = create_node(
+            {
+                "id": self._next_node_id,
+                "type": node_type.upper(),
+                "x": float(x),
+                "y": float(y),
+            }
+        )
+        self._nodes.append(node)
         self._next_node_id += 1
-        return node["id"]
+        return node.node_id
 
     def add_node_with_id(self, node):
         if not self.is_supported_node_type(node.get("type")):
             raise ValueError(f"Unsupported node type: {node.get('type')}")
-        self.nodes.append(node)
-        self._next_node_id = max(self._next_node_id, node["id"] + 1)
+        component = create_node(node)
+        self._nodes.append(component)
+        self._next_node_id = max(self._next_node_id, component.node_id + 1)
 
     def remove_node(self, node_id):
-        self.nodes = [n for n in self.nodes if n["id"] != node_id]
+        self._nodes = [n for n in self._nodes if n.node_id != node_id]
         self.connections = [c for c in self.connections if c[0] != node_id and c[2] != node_id]
 
     def set_node_position(self, node_id, x, y):
-        for node in self.nodes:
-            if node["id"] == node_id:
-                node["x"] = float(x)
-                node["y"] = float(y)
+        for node in self._nodes:
+            if node.node_id == node_id:
+                data = node.to_dict()
+                data["x"] = float(x)
+                data["y"] = float(y)
+                idx = self._nodes.index(node)
+                self._nodes[idx] = create_node(data)
+                return True
+        return False
+
+    def set_node_type(self, node_id: int, node_type: str) -> bool:
+        if not self.is_supported_node_type(node_type):
+            raise ValueError(f"Unsupported node type: {node_type}")
+        for i, node in enumerate(self._nodes):
+            if node.node_id == node_id:
+                data = node.to_dict()
+                data["type"] = node_type.upper()
+                self._nodes[i] = create_node(data)
                 return True
         return False
 
@@ -103,8 +154,8 @@ class Circuit:
 
     def has_cycle(self):
         graph = {}
-        for node in self.nodes:
-            graph[node["id"]] = []
+        for node in self._nodes:
+            graph[node.node_id] = []
         for out_id, _out_pin, in_id, _in_pin in self.connections:
             graph.setdefault(out_id, []).append(in_id)
             graph.setdefault(in_id, [])
@@ -128,7 +179,7 @@ class Circuit:
         return any(dfs(node_id) for node_id in graph)
 
     def validate_structure(self):
-        node_map = {node["id"]: node for node in self.nodes}
+        node_map = {node.node_id: node.to_dict() for node in self._nodes}
         used_input_pins = {}
 
         for out_id, out_pin, in_id, in_pin in self.connections:
@@ -172,13 +223,16 @@ class Circuit:
         return False
 
     def get_node(self, node_id):
-        for node in self.nodes:
-            if node["id"] == node_id:
-                return node
-        return None
+        component = self.get_component(node_id)
+        return component.to_dict() if component else None
 
     def get_nodes(self):
-        return self.nodes
+        return [n.to_dict() for n in self._nodes]
 
     def get_connections(self):
         return self.connections
+
+    def clear(self) -> None:
+        self._nodes = []
+        self.connections = []
+        self._next_node_id = 0

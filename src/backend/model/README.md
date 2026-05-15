@@ -1,6 +1,10 @@
 # Backend Model
 
-Здесь будет размещена модель булевой схемы по паттерну `Composite`.
+Модель схемы по паттерну **Composite**:
+
+- `node.py` — `SchemeComponent`, лист `CircuitNode`
+- `elements.py` — типизированные узлы (`InputNode`, `AndNode`, …) с `accept(visitor)`
+- `circuit.py` — контейнер `Circuit` (Composite), связи между пинами
 
 Планируемое содержимое:
 

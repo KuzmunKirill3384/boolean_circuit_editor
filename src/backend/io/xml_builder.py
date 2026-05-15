@@ -44,9 +44,7 @@ def import_from_xml(filepath: str) -> Circuit:
         raise ValueError("Invalid XML format: root tag must be <circuit>")
 
     c = Circuit()
-    c.nodes = []
-    c.connections = []
-    c._next_node_id = 0
+    c.clear()
 
     nodes_el = root.find("nodes")
     if nodes_el is not None:

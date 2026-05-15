@@ -1,6 +1,7 @@
 # Backend Commands
 
-Модуль команд редактирования по паттерну `Command`.
+- `history.py` — команды и `CommandHistory` (Command)
+- `factory.py` — `CommandFactory` (Factory): единая точка создания команд
 
 Планируемые сущности:
 

@@ -1,47 +1,46 @@
 from backend.model.circuit import Circuit
-from backend.commands.history import (
-    CommandHistory,
-    AddNodeCommand,
-    RemoveNodeCommand,
-    MoveNodeCommand,
-    ConnectPinsCommand,
-    DisconnectPinsCommand,
-)
+from backend.commands.history import CommandHistory
+from backend.commands.factory import CommandFactory, CommandFactoryError
 
 
 class AppController:
     def __init__(self):
         self.circuit = Circuit()
         self.history = CommandHistory()
+        self.command_factory = CommandFactory(self.circuit)
 
     def add_node(self, node_type, x, y):
-        cmd = AddNodeCommand(self.circuit, node_type, x, y)
+        cmd = self.command_factory.create_add_node(node_type, x, y)
         self.history.execute(cmd)
         return cmd.node_id
 
     def remove_node(self, node_id):
-        cmd = RemoveNodeCommand(self.circuit, node_id)
+        cmd = self.command_factory.create_remove_node(node_id)
         self.history.execute(cmd)
 
     def move_node(self, node_id, old_x, old_y, new_x, new_y):
         if old_x == new_x and old_y == new_y:
             return
-        cmd = MoveNodeCommand(self.circuit, node_id, old_x, old_y, new_x, new_y)
+        cmd = self.command_factory.create_move_node(node_id, old_x, old_y, new_x, new_y)
         self.history.execute(cmd)
 
     def connect_pins(self, out_node_id, out_pin, in_node_id, in_pin):
-        valid, message = self.circuit.validate_connection(out_node_id, out_pin, in_node_id, in_pin)
-        if not valid:
-            return False, message
-        cmd = ConnectPinsCommand(self.circuit, out_node_id, out_pin, in_node_id, in_pin)
+        try:
+            cmd = self.command_factory.create_connect_pins(
+                out_node_id, out_pin, in_node_id, in_pin
+            )
+        except CommandFactoryError as exc:
+            return False, str(exc)
         self.history.execute(cmd)
         return True, ""
 
     def disconnect_pins(self, out_node_id, out_pin, in_node_id, in_pin):
-        connection = (out_node_id, out_pin, in_node_id, in_pin)
-        if connection not in self.circuit.get_connections():
+        try:
+            cmd = self.command_factory.create_disconnect_pins(
+                out_node_id, out_pin, in_node_id, in_pin
+            )
+        except CommandFactoryError:
             return False
-        cmd = DisconnectPinsCommand(self.circuit, out_node_id, out_pin, in_node_id, in_pin)
         self.history.execute(cmd)
         return True
 
@@ -60,6 +59,7 @@ class AppController:
         from backend.io.xml_builder import import_from_xml
 
         self.circuit = import_from_xml(filepath)
+        self.command_factory.bind_circuit(self.circuit)
         self.history.clear()
 
     def get_truth_table(self):
@@ -101,6 +101,7 @@ class AppController:
         from backend.logic.truth_table import simplify
 
         self.circuit = simplify(self.circuit, input_values)
+        self.command_factory.bind_circuit(self.circuit)
         self.history.clear()
 
     def evaluate_circuit(self, input_values):
