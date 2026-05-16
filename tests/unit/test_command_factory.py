@@ -1,3 +1,12 @@
+"""
+Тесты для модуля backend.commands.factory (CommandFactory).
+
+Проверяется:
+  - Создание команд правильного типа (AddNodeCommand, RemoveNodeCommand и др.)
+  - Валидация параметров при создании команд
+  - Обработка ошибочных ситуаций (неподдерживаемый тип узла, несуществующий узел, создание цикла)
+"""
+
 import pytest
 
 from backend.model.circuit import Circuit
@@ -10,6 +19,8 @@ from backend.commands.history import (
 
 
 def test_factory_creates_expected_command_types():
+    """Проверяет, что CommandFactory создаёт команды правильных типов 
+    (AddNodeCommand, RemoveNodeCommand, ConnectPinsCommand)."""
     circuit = Circuit()
     factory = CommandFactory(circuit)
 
@@ -32,6 +43,10 @@ def test_factory_creates_expected_command_types():
 
 
 def test_factory_rejects_invalid_arguments():
+    """Проверяет валидацию параметров при создании команд:
+    - неподдерживаемый тип узла
+    - попытка удалить несуществующий узел
+    - попытка создать цикл"""
     circuit = Circuit()
     factory = CommandFactory(circuit)
 
