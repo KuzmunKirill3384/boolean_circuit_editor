@@ -4,25 +4,29 @@ from PyQt6.QtCore import Qt, QTimer
 from frontend.common.settings import SettingsManager
 from backend.model.circuit import Circuit
 
-
+# Класс для отрисовки контактов (пинов) элементов на сцене
 class PinItem(QGraphicsEllipseItem):
     def __init__(self, node_item, pin_index, is_input, settings_manager=None):
         self.settings_manager = settings_manager or SettingsManager()
         size = 10
         super().__init__(-size/2, -size/2, size, size)
+
         self.node_item = node_item
         self.pin_index = pin_index
         self.is_input = is_input
+
         self.setBrush(QBrush(Qt.GlobalColor.white))
         self.setPen(QPen(Qt.GlobalColor.black, 1))
+
         self.setAcceptHoverEvents(True)
         self.setToolTip(f"{'Input' if is_input else 'Output'} pin {pin_index}")
         self._selected_for_link = False
 
+    # Наведение мыши
     def hoverEnterEvent(self, event):
         self.setPen(QPen(Qt.GlobalColor.blue, 2))
         super().hoverEnterEvent(event)
-
+    # Уход мыши
     def hoverLeaveEvent(self, event):
         if self._selected_for_link:
             self.setPen(QPen(QColor("#34c759"), 3))
@@ -30,6 +34,7 @@ class PinItem(QGraphicsEllipseItem):
             self.setPen(QPen(Qt.GlobalColor.black, 1))
         super().hoverLeaveEvent(event)
 
+    # Визуально отмечаем, что пин выбран для связи
     def set_link_selected(self, selected: bool):
         self._selected_for_link = selected
         if selected:
@@ -47,17 +52,20 @@ class PinItem(QGraphicsEllipseItem):
         super().mousePressEvent(event)
 
 
+# Класс для отрисовки узлов (логических элементов) на сцене
 class NodeItem(QGraphicsRectItem):
     def __init__(self, node, move_callback=None, settings_manager=None):
         self.settings_manager = settings_manager or SettingsManager()
         width, height = self.settings_manager.get_node_size()
         super().__init__(-width / 2, -height / 2, width, height)
+
         self.node_id = node["id"]
         self.node_type = node["type"]
         self.move_callback = move_callback
         self.highlight_status = "default"
         self.original_pos = (node["x"], node["y"])
         self.pins = []
+        # Флаги: можно перемещать, выбирать, отправляет события
         self.setFlags(
             QGraphicsRectItem.GraphicsItemFlag.ItemIsMovable
             | QGraphicsRectItem.GraphicsItemFlag.ItemSendsGeometryChanges
@@ -68,6 +76,7 @@ class NodeItem(QGraphicsRectItem):
         self.setPos(node["x"], node["y"])
         self.create_pins()
 
+    # Создание входных и выходных контактов для элемента
     def create_pins(self):
         input_pins, output_pins = Circuit.get_pin_counts(self.node_type)
         width, height = self.settings_manager.get_node_size()
@@ -90,12 +99,16 @@ class NodeItem(QGraphicsRectItem):
         self.highlight_status = status
         self.update()
 
+    # Отрисовка элемента на сцене с использованием соответствующего символа
     def paint(self, painter, option, widget=None):
+
         color = self.settings_manager.get_node_color(self.node_type.upper())
+
         if self.highlight_status == "affected":
             color = QColor("#ff8c00")
         elif self.highlight_status == "selected":
             color = QColor("#34c759")
+        # Устанавливаем цвет заливки и обводки
         painter.setBrush(QBrush(color))
         pen_color = Qt.GlobalColor.black
         if self.isSelected():
@@ -168,10 +181,11 @@ class NodeItem(QGraphicsRectItem):
             painter.setPen(Qt.GlobalColor.white)
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, f"{self.node_type}\n#{self.node_id}")
 
+    # Запоминаем позицию до перемещения
     def mousePressEvent(self, event):
         self.original_pos = (self.x(), self.y())
         super().mousePressEvent(event)
-
+    # После отпускания мыши вызываем callback
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
         if self.move_callback:
@@ -181,6 +195,7 @@ class NodeItem(QGraphicsRectItem):
             if old_x != new_x or old_y != new_y:
                 self.move_callback(self.node_id, old_x, old_y, new_x, new_y)
 
+# Класс для отрисовки линий подключения между контактами
 class ConnectionLine(QGraphicsLineItem):
     def __init__(self, from_pin, to_pin, scene=None, settings_manager=None):
         super().__init__()
@@ -233,14 +248,15 @@ class ConnectionLine(QGraphicsLineItem):
         self.setLine(p1.x(), p1.y(), p2.x(), p2.y())
 
 
+# Главный класс графической сцены для управления схемой
 class CircuitScene(QGraphicsScene):
     def __init__(self, controller):
         super().__init__()
-        self.controller = controller
+        self.controller = controller               # Ссылка на бизнес-логику
         self.settings_manager = SettingsManager()
-        self.selected_gate = None
-        self.mode = "add"
-        self.connect_source_id = None
+        self.selected_gate = None                  # Какой элемент выбран для добавления
+        self.mode = "add"                          # Режим работы: "add", "connect", "disconnect"
+        self.connect_source_id = None              # Временное хранение источника при подключении/отключении
         self.temp_line = None
         self.setSceneRect(0, 0, 1000, 600)
         self.nodes = {}
@@ -283,8 +299,8 @@ class CircuitScene(QGraphicsScene):
             self.removeItem(self.temp_line)
             self.temp_line = None
 
+    # Обработка клика по контакту: подключение или отключение линий
     def on_pin_clicked(self, node_id, pin_index, is_input):
-
         if self.mode == "connect":
             if self.connect_source_id is None:
               
@@ -338,6 +354,7 @@ class CircuitScene(QGraphicsScene):
                 self._clear_connect_selection()
             return
 
+    # Синхронизация сцены с моделью схемы: отрисовка всех элементов и линий
     def sync_scene(self):
         self.clear()
         self.nodes = {}
@@ -378,6 +395,7 @@ class CircuitScene(QGraphicsScene):
         for line in self.lines:
             line.update_line()
 
+    # Подсветка выбранных узлов и связанных с ними элементов
     def highlight_nodes(self, node_ids, selected_node_id=None):
         selected_node_id = selected_node_id
         for node_id, item in self.nodes.items():
@@ -391,6 +409,7 @@ class CircuitScene(QGraphicsScene):
             except RuntimeError:
                 pass
 
+    # Очистка подсветки всех элементов на сцене
     def clear_highlights(self):
         for item in self.nodes.values():
             try:
@@ -399,6 +418,7 @@ class CircuitScene(QGraphicsScene):
             except RuntimeError:
                 pass
 
+    # Обработка клика на сцену: добавление элемента или выделение
     def mousePressEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
             super().mousePressEvent(event)
@@ -422,6 +442,7 @@ class CircuitScene(QGraphicsScene):
     def mouseDoubleClickEvent(self, event):
         super().mouseDoubleClickEvent(event)
 
+    # Удаление выбранных элементов со сцены
     def delete_selected_nodes(self):
         selected_items = self.selectedItems()
         removed_any = False
@@ -433,6 +454,7 @@ class CircuitScene(QGraphicsScene):
             self.sync_scene()
         return removed_any
 
+    # Обработка нажатия клавиш: удаление при Delete/Backspace
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
             self.delete_selected_nodes()

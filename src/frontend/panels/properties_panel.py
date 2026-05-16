@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QGroupBox, QFormLayout
 from PyQt6.QtCore import pyqtSignal
 
+# Панель для отображения и редактирования свойств выбранного элемента
 class PropertiesPanel(QWidget):
     properties_changed = pyqtSignal(dict) 
 
@@ -9,6 +10,7 @@ class PropertiesPanel(QWidget):
         self.selected_node = None
         self.setup_ui()
 
+    # Установка интерфейса: группы свойств элемента
     def setup_ui(self):
         layout = QVBoxLayout(self)
 
@@ -40,6 +42,7 @@ class PropertiesPanel(QWidget):
         self.x_edit.editingFinished.connect(self.on_position_changed)
         self.y_edit.editingFinished.connect(self.on_position_changed)
 
+    # Обновление свойств панели при выборе элемента
     def set_selected_node(self, node_data, circuit):
         self.selected_node = node_data
         if node_data:
@@ -62,6 +65,7 @@ class PropertiesPanel(QWidget):
             self.connections_label.setText("Connections: -")
             self.node_group.setEnabled(False)
 
+    # Обработка изменения координат элемента
     def on_position_changed(self):
         if not self.selected_node:
             return

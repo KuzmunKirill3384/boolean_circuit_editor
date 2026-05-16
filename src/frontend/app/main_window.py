@@ -20,6 +20,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        # Инициализация контроллера приложения для управления логикой
         self.controller = AppController()
         self.setWindowTitle("Булевский редактор схем")
         self.resize(1200, 800)
@@ -51,6 +52,7 @@ class MainWindow(QMainWindow):
         redo_action = QAction("Повтор", self)
         delete_action = QAction("Удалить блок(и)", self)
         delete_action.setShortcut("Delete")
+
         undo_action.triggered.connect(self.undo)
         redo_action.triggered.connect(self.redo)
         delete_action.triggered.connect(self.delete_selected_nodes)
@@ -79,12 +81,15 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("Элементы")
         self.addToolBar(toolbar)
 
+        # Кнопки для добавления логических элементов
         for gate in ["IN", "OUT", "AND", "OR", "XOR", "EQUAL"]:
             action = QAction(gate, self)
+            # lambda с параметром g=gate нужна, чтобы захватить текущее значение
             action.triggered.connect(lambda checked, g = gate: self.select_gate(g))
             toolbar.addAction(action)
 
         toolbar.addSeparator()
+        # Режимы подключения и отключения провода
         connect_action = QAction("Связь", self)
         connect_action.setCheckable(True)
         connect_action.triggered.connect(self.set_connect_mode)
@@ -166,13 +171,17 @@ class MainWindow(QMainWindow):
         msg.exec()
 
 
+    # Инициализация центрального виджета (холст схемы)
     def init_central(self):
+        # Создание сцены для рисования схемы
         self.scene = CircuitScene(self.controller)
         self.view = CircuitView(self.scene)
         self.setCentralWidget(self.view)
         self.view.setFocus()
 
+    # Инициализация панелей справа (свойства элементов и таблица истинности)
     def init_docks(self):
+        # Панель свойств для выбранного элемента
         self.properties_dock = QDockWidget("Properties", self)
         self.properties_panel = PropertiesPanel()
         self.properties_panel.properties_changed.connect(self.on_properties_changed)
@@ -185,7 +194,7 @@ class MainWindow(QMainWindow):
         dock_widget = QWidget()
         dock_layout = QVBoxLayout()
 
-        # Mode selection buttons
+        # Кнопки выбора режима отображения таблицы
         mode_layout = QHBoxLayout()
         mode_label = QLabel("Режим:")
         mode_layout.addWidget(mode_label)
@@ -202,13 +211,13 @@ class MainWindow(QMainWindow):
         mode_layout.addStretch()
         
         self.circuit_mode_radio.setChecked(True)
-        self.truth_table_mode = "circuit"  # "circuit" or "node"
+        self.truth_table_mode = "circuit"  
         
         self.circuit_mode_radio.toggled.connect(self.on_circuit_mode_selected)
         self.node_mode_radio.toggled.connect(self.on_node_mode_selected)
         dock_layout.addLayout(mode_layout)
 
-        # Info and refresh controls
+        # Панель управления таблицей истинности
         controls_layout = QHBoxLayout()
         self.truth_table_mode_label = QLabel("Таблица всей схемы")
         controls_layout.addWidget(self.truth_table_mode_label)
@@ -236,6 +245,7 @@ class MainWindow(QMainWindow):
         self.selected_node_id = None
         self.scene.selectionChanged.connect(self.on_scene_selection_changed)
 
+    # Обновление информации при выборе элемента на сцене
     def on_scene_selection_changed(self):
         try:
             selected_items = self.scene.selectedItems()
@@ -283,7 +293,7 @@ class MainWindow(QMainWindow):
         if not self.truth_table_action.isChecked():
             return
 
-        # Show circuit mode table
+        # Режим 1: отображение таблицы истинности всей схемы
         if self.truth_table_mode == "circuit":
             table = self.controller.get_truth_table()
             if table.get("error"):
@@ -303,7 +313,7 @@ class MainWindow(QMainWindow):
             self.scene.clear_highlights()
             return
 
-        # Show node mode table
+        # Режим 2: отображение таблицы истинности для выбранного элемента
         if self.truth_table_mode == "node":
             if self.selected_node_id is None:
                 self.truth_table_mode_label.setText("По элементу: выберите элемент на доске")
@@ -321,17 +331,16 @@ class MainWindow(QMainWindow):
                     self.scene.clear_highlights()
                     return
                 
-                # Get affected nodes and highlight them
+                # Получение связанных элементов и их подсветка
                 affected_nodes = self.controller.get_affected_nodes(self.selected_node_id)
                 all_highlighted = affected_nodes + [self.selected_node_id]
                 self.scene.highlight_nodes(all_highlighted, selected_node_id=self.selected_node_id)
                 
-                # Update info label and mode label
+                # Обновление информационных меток
                 node_type = node_data.get("type", "Unknown")
                 self.truth_table_mode_label.setText(f"По элементу: {node_type} (ID: {self.selected_node_id})")
                 self.truth_table_info.setText(f"Влияющие элементы подсвечены оранжевым, сам элемент - зелёным")
                 
-                # Fill the table
                 if table.get("rows"):
                     headers = [f"IN_{nid}" for nid in table.get("inputs", [])] + [f"Node_{self.selected_node_id}"]
                     self._fill_truth_table(headers, table.get("rows", []))
@@ -372,6 +381,7 @@ class MainWindow(QMainWindow):
         dialog = SettingsDialog(self)
         dialog.exec()
 
+    # Диалог упрощения логической схемы
     def show_simplification_dialog(self):
         dialog = SimplificationDialog(self, self.controller, self.controller.circuit)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -380,6 +390,7 @@ class MainWindow(QMainWindow):
             self.update_truth_table_panel()
             self.statusBar().showMessage("Схема упрощена успешно", 3000)
 
+    # Диалог для отображения полиномиального представления схемы
     def show_polynomial_dialog(self):
         dialog = PolynomialDialog(self, self.controller, self.controller.circuit)
         dialog.exec()
