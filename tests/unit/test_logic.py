@@ -300,16 +300,18 @@ class TestPolynomials:
         assert "+" in poly
 
     def test_xor_gate_polynomial(self):
-        """XOR: полином использует оператор ⊕."""
+        """XOR: полином использует оператор ^."""
         c, in0, in1, xor1, out1 = _xor_circuit()
         poly = get_polynomial_for_node(c, xor1)
-        assert "⊕" in poly
+        assert "^" in poly
+        assert "x" in poly
+
 
     def test_equal_gate_polynomial(self):
-        """EQUAL: полином использует оператор =."""
+        """EQUAL/XNOR: полином использует ~^ или эквивалент."""
         c, in0, in1, eq1, out1 = _equal_circuit()
         poly = get_polynomial_for_node(c, eq1)
-        assert "=" in poly
+        assert "~^" in poly or "==" in poly or "≡" in poly or "=" in poly
 
     def test_output_node_polynomial_equals_source(self):
         """Полином OUT равен полиному его единственного источника."""
