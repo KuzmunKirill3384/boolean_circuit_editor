@@ -2,6 +2,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter
 from PyQt6.QtWidgets import QGraphicsView
 
+# Класс для отображения сцены с поддержкой масштабирования и навигации
 class CircuitView(QGraphicsView):
     def __init__(self, scene):
         super().__init__(scene)
@@ -11,12 +12,14 @@ class CircuitView(QGraphicsView):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._panning = False
 
+    # Масштабирование колесиком мыши
     def wheelEvent(self, event):
         zoom_in = 1.15
         zoom_out = 1 / zoom_in
         factor = zoom_in if event.angleDelta().y() > 0 else zoom_out
         self.scale(factor, factor)
 
+    # Панорамирование сцены средней кнопкой мыши
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.MiddleButton:
             self._panning = True
@@ -26,6 +29,7 @@ class CircuitView(QGraphicsView):
             return
         super().mousePressEvent(event)
 
+    # Окончание панорамирования
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.MiddleButton and self._panning:
             self._panning = False
@@ -35,6 +39,7 @@ class CircuitView(QGraphicsView):
             return
         super().mouseReleaseEvent(event)
 
+    # Обработка клавиш: навигация, масштабирование
     def keyPressEvent(self, event):
         step = 60
         if event.key() == Qt.Key.Key_Left:
