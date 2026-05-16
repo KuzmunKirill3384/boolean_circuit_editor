@@ -1,0 +1,24 @@
+@startuml Sequence: Undo / Redo
+participant MainWindow
+participant AppController
+participant CommandHistory
+participant Command
+participant Circuit
+
+MainWindow -> AppController : undo()
+AppController -> CommandHistory : undo()
+CommandHistory -> Command : undo()
+Command -> Circuit : restore previous state
+CommandHistory --> AppController
+AppController --> MainWindow
+MainWindow -> CircuitScene : sync_scene()
+
+== Redo ==
+MainWindow -> AppController : redo()
+AppController -> CommandHistory : redo()
+CommandHistory -> Command : execute()
+Command -> Circuit : apply state
+CommandHistory --> AppController
+AppController --> MainWindow
+MainWindow -> CircuitScene : sync_scene()
+@enduml

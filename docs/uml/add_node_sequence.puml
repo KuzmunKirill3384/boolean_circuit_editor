@@ -1,22 +1,23 @@
-@startuml
-actor Пользователь
+@startuml Sequence: Добавление узла
+actor User
 participant MainWindow
 participant CircuitScene
 participant AppController
-participant CommandHistory
-participant "AddNodeCommand" as CMD
+participant CommandFactory
+participant AddNodeCommand
 participant Circuit
 
-Пользователь -> MainWindow: выбирает элемент "AND"
-MainWindow -> CircuitScene: set_selected_gate("AND")
-Пользователь -> CircuitScene: клик на сцене
-CircuitScene -> AppController: add_node("AND", x, y)
-AppController -> CommandHistory: execute(cmd)
-CommandHistory -> CMD: execute()
-CMD -> Circuit: add_node("AND", x, y)
-Circuit --> CMD: node_id
-CMD --> CommandHistory: node_id
-CommandHistory --> AppController: node_id
-AppController --> CircuitScene: node_id
-CircuitScene -> CircuitScene: перерисовать сцену
+User -> MainWindow : Выбор инструмента + клик по сцене
+MainWindow -> CircuitScene : mousePressEvent()
+CircuitScene -> AppController : add_node(type, x, y)
+AppController -> CommandFactory : create_add_node()
+CommandFactory -> AddNodeCommand ** : create
+AppController -> CommandHistory : execute(cmd)
+CommandHistory -> AddNodeCommand : execute()
+AddNodeCommand -> Circuit : add_node()
+Circuit --> AddNodeCommand : node_id
+CommandHistory --> AppController
+AppController --> CircuitScene : return
+CircuitScene -> CircuitScene : sync_scene()
+CircuitScene --> MainWindow
 @enduml

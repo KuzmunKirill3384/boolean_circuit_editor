@@ -1,0 +1,22 @@
+@startuml Sequence: Соединение пинов
+actor User
+participant CircuitScene
+participant AppController
+participant CommandFactory
+participant ConnectPinsCommand
+participant Circuit
+
+User -> CircuitScene : клик по output pin → input pin
+CircuitScene -> AppController : connect_pins(out_id, out_pin, in_id, in_pin)
+AppController -> CommandFactory : create_connect_pins(...)
+CommandFactory -> Circuit : validate_connection()
+Circuit --> CommandFactory : True
+CommandFactory -> ConnectPinsCommand ** : create
+AppController -> CommandHistory : execute(cmd)
+CommandHistory -> ConnectPinsCommand : execute()
+ConnectPinsCommand -> Circuit : connect_pins()
+Circuit --> ConnectPinsCommand
+CommandHistory --> AppController
+AppController --> CircuitScene
+CircuitScene -> CircuitScene : sync_scene()
+@enduml

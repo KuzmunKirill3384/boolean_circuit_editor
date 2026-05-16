@@ -1,107 +1,98 @@
-@startuml
-skinparam classAttributeIconSize 0
+@startuml Class Diagram - Boolean Circuit Editor
 
-abstract class SchemeComponent {
-  +accept(visitor)
+package "Frontend (PyQt6)" {
+    class MainWindow {
+        -controller : AppController
+        -scene : CircuitScene
+        -view : CircuitView
+        +add_node()
+        +connect_pins()
+        +undo()
+        +redo()
+    }
+
+    class CircuitScene {
+        -controller : AppController
+        -nodes : dict
+        -lines : list
+        +sync_scene()
+        +on_pin_clicked()
+        +mousePressEvent()
+    }
+
+    class NodeItem
+    class PinItem
+    class ConnectionLine
 }
 
-abstract class CircuitNode {
-  +node_id: int
-  +node_type: str
-  +to_dict(): dict
+package "Backend" {
+    class AppController {
+        -circuit : Circuit
+        -history : CommandHistory
+        -factory : CommandFactory
+        +add_node()
+        +connect_pins()
+        +simplify_circuit()
+        +get_polynomials()
+        +undo()
+        +redo()
+    }
+
+    interface Command {
+        +execute()
+        +undo()
+    }
+
+    class CommandHistory {
+        -undo_stack
+        -redo_stack
+        +execute(Command)
+        +undo()
+        +redo()
+    }
+
+    class CommandFactory
+
+    class Circuit {
+        -_nodes : List<CircuitNode>
+        -connections
+        +accept(Visitor)
+        +validate_structure()
+    }
+
+    interface SchemeComponent {
+        +accept(visitor)
+    }
+
+    abstract class CircuitNode {
+        +node_id
+        +node_type
+        +accept(visitor)
+    }
+
+    interface CircuitVisitor
 }
 
-class InputNode
-class AndNode
-class OutputNode
-
-abstract class CircuitVisitor {
-  +visit_circuit(circuit)
-  +visit_input(node)
-  +visit_and(node)
-  +visit_output(node)
-}
-
-class NodeRolesVisitor {
-  +input_ids: list
-  +output_ids: list
-}
-
-SchemeComponent <|-- CircuitNode
-CircuitNode <|-- InputNode
-CircuitNode <|-- AndNode
-CircuitNode <|-- OutputNode
-CircuitVisitor <|-- NodeRolesVisitor
-CircuitVisitor ..> CircuitNode : visits
-CircuitNode ..> CircuitVisitor : accept()
-
-class Circuit {
-  +nodes: list
-  +connections: list
-  +add_node(type, x, y): int
-  +remove_node(id)
-  +connect_pins(...): bool
-  +validate_structure(): (bool, str)
-}
-
-class AddNodeCommand {
-  -circuit: Circuit
-  -node_type: str
-  -x, y: float
-  +execute()
-  +undo()
-}
-
-class RemoveNodeCommand {
-  -circuit: Circuit
-  -node_id: int
-  -node_data: dict
-  +execute()
-  +undo()
-}
-
-class CommandHistory {
-  -undo_stack: list
-  -redo_stack: list
-  +execute(cmd)
-  +undo(): bool
-  +redo(): bool
-}
-
-class AppController {
-  -circuit: Circuit
-  -history: CommandHistory
-  +add_node(type, x, y): int
-  +undo(): bool
-  +get_truth_table(): dict
-  +simplify_circuit(inputs)
-  +save_circuit(path)
-  +load_circuit(path)
-}
-
-class XMLBuilder {
-  +export_to_xml(c: Circuit, path)
-  +import_from_xml(path): Circuit
-}
-
-class TruthTable {
-  +get_truth_table(c: Circuit): dict
-  +get_truth_table_for_node(c, node_id): dict
-  +get_affected_nodes(c, node_id): list
-  +get_polynomials(c): dict
-  +simplify(c, inputs): Circuit
-}
-
-Circuit <.. AddNodeCommand
-Circuit <.. RemoveNodeCommand
-CommandHistory o-- "0..*" AddNodeCommand
-CommandHistory o-- "0..*" RemoveNodeCommand
-Circuit o-- "0..*" CircuitNode : _nodes
-Circuit ..> CircuitVisitor : accept()
+' Relationships
+MainWindow --> AppController
+MainWindow --> CircuitScene
+CircuitScene --> NodeItem
+CircuitScene --> ConnectionLine
+CircuitScene --> AppController
 
 AppController --> Circuit
 AppController --> CommandHistory
-AppController --> XMLBuilder
-AppController --> TruthTable
-TruthTable ..> NodeRolesVisitor : uses
+AppController --> CommandFactory
+
+Circuit "1" *-- "many" CircuitNode
+Circuit --|> SchemeComponent
+CircuitNode --|> SchemeComponent
+
+Command <|-- AddNodeCommand
+Command <|-- RemoveNodeCommand
+Command <|-- ConnectPinsCommand
+Command <|-- MoveNodeCommand
+
+CircuitVisitor <|.. NodeRolesVisitor
+
 @enduml

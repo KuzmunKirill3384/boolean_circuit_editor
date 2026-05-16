@@ -1,0 +1,20 @@
+@startuml Sequence: Упрощение схемы
+participant MainWindow
+participant SimplificationDialog
+participant AppController
+participant LogicModule as "truth_table / logic"
+participant Circuit
+
+MainWindow -> SimplificationDialog : show()
+SimplificationDialog -> AppController : get_removable_count_per_input()
+SimplificationDialog -> User : выбор значений входов
+User -> SimplificationDialog : "Применить"
+SimplificationDialog -> AppController : simplify_circuit(input_values)
+AppController -> LogicModule : simplify(circuit, values)
+LogicModule -> Circuit : deepcopy + replace IN → CONST
+LogicModule -> Circuit : prune unreachable nodes
+LogicModule --> AppController : new_circuit
+AppController -> AppController : bind new circuit + clear history
+AppController --> MainWindow
+MainWindow -> CircuitScene : sync_scene()
+@enduml

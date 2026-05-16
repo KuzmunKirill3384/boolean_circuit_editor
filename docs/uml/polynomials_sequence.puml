@@ -1,0 +1,17 @@
+@startuml Sequence: Полиномиальное представление
+participant MainWindow
+participant PolynomialDialog
+participant AppController
+participant LogicModule as "logic"
+participant Circuit
+
+MainWindow -> PolynomialDialog : show()
+PolynomialDialog -> AppController : get_polynomials()
+AppController -> LogicModule : get_polynomials(circuit)
+LogicModule -> Circuit : validate_structure()
+LogicModule -> Circuit : traverse nodes
+LogicModule -> LogicModule : _polynomial_for_node() (recursive)
+LogicModule --> AppController : dict[node_id → poly]
+AppController --> PolynomialDialog
+PolynomialDialog -> PolynomialDialog : отображение в TreeWidget + TextEdit
+@enduml
