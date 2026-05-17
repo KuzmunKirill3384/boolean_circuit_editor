@@ -1,8 +1,9 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QGroupBox, QFormLayout
 from PyQt6.QtCore import pyqtSignal
 
-# Панель для отображения и редактирования свойств выбранного элемента
+
 class PropertiesPanel(QWidget):
+    """Панель для отображения и редактирования свойств выбранного элемента схемы (узла)."""
     properties_changed = pyqtSignal(dict) 
 
     def __init__(self, parent=None):
@@ -10,7 +11,7 @@ class PropertiesPanel(QWidget):
         self.selected_node = None
         self.setup_ui()
 
-    # Установка интерфейса: группы свойств элемента
+
     def setup_ui(self):
         layout = QVBoxLayout(self)
 

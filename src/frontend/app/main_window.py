@@ -17,10 +17,13 @@ import sys
 
 
 class MainWindow(QMainWindow):
+    """Главное окно приложения редактора логических схем."""
+    
     def __init__(self):
+        """Создает контроллер приложения, инициализирует все компоненты UI
+            (меню, тулбар, центральный виджет, док-панели)."""
         super().__init__()
 
-        # Инициализация контроллера приложения для управления логикой
         self.controller = AppController()
         self.setWindowTitle("Булевский редактор схем")
         self.resize(1200, 800)
@@ -31,6 +34,7 @@ class MainWindow(QMainWindow):
         self.init_docks()
 
     def init_menu(self):
+        """Инициализирует меню приложения (Файл, Правка, Вид). """
         menu_bar = self.menuBar()
 
         file_menu = menu_bar.addMenu("Файл")
@@ -78,18 +82,16 @@ class MainWindow(QMainWindow):
         self.settings_action.triggered.connect(self.show_settings)
 
     def init_toolbar(self):
+        """Инициализирует панель инструментов приложения."""
         toolbar = QToolBar("Элементы")
         self.addToolBar(toolbar)
 
-        # Кнопки для добавления логических элементов
         for gate in ["IN", "OUT", "AND", "OR", "XOR", "EQUAL"]:
             action = QAction(gate, self)
-            # lambda с параметром g=gate нужна, чтобы захватить текущее значение
             action.triggered.connect(lambda checked, g = gate: self.select_gate(g))
             toolbar.addAction(action)
 
         toolbar.addSeparator()
-        # Режимы подключения и отключения провода
         connect_action = QAction("Связь", self)
         connect_action.setCheckable(True)
         connect_action.triggered.connect(self.set_connect_mode)
@@ -115,6 +117,11 @@ class MainWindow(QMainWindow):
         toolbar.addAction(help_action)
 
     def select_gate(self, gate_type):
+        """Выбирает логический элемент для добавления на сцену.
+        
+        Args:
+            gate_type (str): Тип элемента (IN, OUT, AND, OR, XOR, EQUAL).
+        """
         self.scene.set_selected_gate(gate_type)
         self.scene.mode = "add"
         self.statusBar().showMessage(
@@ -123,6 +130,7 @@ class MainWindow(QMainWindow):
         )
 
     def set_connect_mode(self, checked=False):
+        """Активирует режим подключения проводов между элементами."""
         self.scene.set_connect_mode()
         self.statusBar().showMessage(
             "Режим связи: кликните по выходному пину, затем по входному",
@@ -130,6 +138,7 @@ class MainWindow(QMainWindow):
         )
 
     def set_disconnect_mode(self, checked=False):
+        """Активирует режим отключения проводов между элементами."""
         self.scene.set_disconnect_mode()
         self.statusBar().showMessage(
             "Режим отключения: кликните по линии связи или по паре пинов",
@@ -137,11 +146,13 @@ class MainWindow(QMainWindow):
         )
 
     def show_truth_table(self):
+        """Отображает панель таблицы истинности и обновляет содержимое."""
         self.truth_table_action.setChecked(True)
         self.truth_table_dock.show()
         self.update_truth_table_panel()
 
     def delete_selected_nodes(self):
+        """Удаляет выбранные элементы со сцены и обновляет отображение."""
         if self.scene.delete_selected_nodes():
             self.statusBar().showMessage("Выбранные блоки удалены", 3000)
             self.update_truth_table_panel()
@@ -149,6 +160,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Нет выбранных блоков для удаления", 3000)
 
     def show_controls_help(self):
+        """Показывает окно справки по управлению приложением."""
         msg = QMessageBox(self)
         msg.setWindowTitle("Подсказка по управлению")
         msg.setIcon(QMessageBox.Icon.Information)
@@ -171,17 +183,15 @@ class MainWindow(QMainWindow):
         msg.exec()
 
 
-    # Инициализация центрального виджета (холст схемы)
     def init_central(self):
-        # Создание сцены для рисования схемы
+        """Инициализирует центральный виджет - холст для рисования схемы."""
         self.scene = CircuitScene(self.controller)
         self.view = CircuitView(self.scene)
         self.setCentralWidget(self.view)
         self.view.setFocus()
 
-    # Инициализация панелей справа (свойства элементов и таблица истинности)
     def init_docks(self):
-        # Панель свойств для выбранного элемента
+        """Инициализирует док-панели: панель свойств и таблица истинности."""
         self.properties_dock = QDockWidget("Properties", self)
         self.properties_panel = PropertiesPanel()
         self.properties_panel.properties_changed.connect(self.on_properties_changed)
@@ -245,8 +255,8 @@ class MainWindow(QMainWindow):
         self.selected_node_id = None
         self.scene.selectionChanged.connect(self.on_scene_selection_changed)
 
-    # Обновление информации при выборе элемента на сцене
     def on_scene_selection_changed(self):
+        """Обновляет панель свойств при выборе элемента на сцене."""
         try:
             selected_items = self.scene.selectedItems()
         except RuntimeError:
@@ -267,33 +277,42 @@ class MainWindow(QMainWindow):
         self.update_truth_table_panel()
 
     def on_circuit_mode_selected(self, checked):
+        """Активирует режим отображения таблицы истинности для всей схемы."""
         if checked:
             self.truth_table_mode = "circuit"
             self.update_truth_table_panel()
     
     def on_node_mode_selected(self, checked):
+        """Активирует режим отображения таблицы истинности для выбранного элемента."""
         if checked:
             self.truth_table_mode = "node"
             self.update_truth_table_panel()
 
     def on_properties_changed(self, data):
+        """Обрабатывает изменения свойств элемента.
+        
+        Args:
+            data (dict): Словарь с информацией об изменении.
+        """
         if data["action"] == "move_node":
             self.controller.move_node(data["node_id"], data["old_x"], data["old_y"], data["new_x"], data["new_y"])
             self.scene.sync_scene()
 
     def undo(self):
+        """Отменяет последнее действие в схеме."""
         if self.controller.undo():
             self.scene.sync_scene()
 
     def redo(self):
+        """Повторяет последнее отмененное действие в схеме."""
         if self.controller.redo():
             self.scene.sync_scene()
 
     def update_truth_table_panel(self):
+        """Обновляет содержимое таблицы истинности на основе текущего режима."""
         if not self.truth_table_action.isChecked():
             return
 
-        # Режим 1: отображение таблицы истинности всей схемы
         if self.truth_table_mode == "circuit":
             table = self.controller.get_truth_table()
             if table.get("error"):
@@ -313,7 +332,6 @@ class MainWindow(QMainWindow):
             self.scene.clear_highlights()
             return
 
-        # Режим 2: отображение таблицы истинности для выбранного элемента
         if self.truth_table_mode == "node":
             if self.selected_node_id is None:
                 self.truth_table_mode_label.setText("По элементу: выберите элемент на доске")
@@ -331,12 +349,10 @@ class MainWindow(QMainWindow):
                     self.scene.clear_highlights()
                     return
                 
-                # Получение связанных элементов и их подсветка
                 affected_nodes = self.controller.get_affected_nodes(self.selected_node_id)
                 all_highlighted = affected_nodes + [self.selected_node_id]
                 self.scene.highlight_nodes(all_highlighted, selected_node_id=self.selected_node_id)
                 
-                # Обновление информационных меток
                 node_type = node_data.get("type", "Unknown")
                 self.truth_table_mode_label.setText(f"По элементу: {node_type} (ID: {self.selected_node_id})")
                 self.truth_table_info.setText(f"Влияющие элементы подсвечены оранжевым, сам элемент - зелёным")
@@ -349,6 +365,12 @@ class MainWindow(QMainWindow):
                 return
 
     def _fill_truth_table(self, headers, rows):
+        """Заполняет таблицу истинности данными.
+        
+        Args:
+            headers (list): Список названий столбцов таблицы.
+            rows (list): Список строк таблицы (словари с данными).
+        """
         self.truth_table_table.clear()
         self.truth_table_table.setColumnCount(len(headers))
         self.truth_table_table.setRowCount(len(rows))
@@ -360,6 +382,7 @@ class MainWindow(QMainWindow):
                 self.truth_table_table.setItem(r, c, item)
 
     def open_file(self):
+        """Открывает диалог выбора файла и загружает схему из XML."""
         filepath, _ = QFileDialog.getOpenFileName(self, "Открыть схему", "", "XML Files (*.xml)")
         if filepath:
             try:
@@ -370,6 +393,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить файл: {e}")
 
     def save_file(self):
+        """Открывает диалог сохранения и сохраняет схему в XML."""
         filepath, _ = QFileDialog.getSaveFileName(self, "Сохранить схему", "", "XML Files (*.xml)")
         if filepath:
             try:
@@ -378,19 +402,19 @@ class MainWindow(QMainWindow):
                 QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл: {e}")
 
     def show_settings(self):
+        """Открывает диалог настроек приложения."""
         dialog = SettingsDialog(self)
         dialog.exec()
 
-    # Диалог упрощения логической схемы
     def show_simplification_dialog(self):
+        """Открывает диалог упрощения схемы по заданным значениям входов."""
         dialog = SimplificationDialog(self, self.controller, self.controller.circuit)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-
             self.scene.sync_scene()
             self.update_truth_table_panel()
             self.statusBar().showMessage("Схема упрощена успешно", 3000)
 
-    # Диалог для отображения полиномиального представления схемы
     def show_polynomial_dialog(self):
+        """Открывает диалог отображения полиномиального представления схемы."""
         dialog = PolynomialDialog(self, self.controller, self.controller.circuit)
         dialog.exec()

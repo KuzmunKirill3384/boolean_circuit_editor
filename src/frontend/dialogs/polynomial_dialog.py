@@ -7,15 +7,15 @@ from PyQt6.QtGui import QFont
 
 
 class PolynomialDialog(QDialog):
-
+    """Диалоговое окно для отображения полиномиального представления логических элементов схемы."""
     def __init__(self, parent=None, controller=None, circuit=None):
         super().__init__(parent)
         self.controller = controller
         self.circuit = circuit
         self.setWindowTitle("Полиномиальное представление")
         self.resize(800, 600)
-        
-        self.polynomials = {}
+
+        self.polynomials = {} 
         self.selected_node_id = None
         self.current_polynomial = ""
         
@@ -23,27 +23,25 @@ class PolynomialDialog(QDialog):
         self.load_polynomials()
     
     def init_ui(self):
+        """Инициализация интерфейса диалогового окна с деревом элементов и полем для полинома."""
         layout = QVBoxLayout()
         
-        # Title
         title_label = QLabel("Полиномиальное представление логических элементов")
         title_label.setStyleSheet("font-weight: bold; font-size: 13px;")
         layout.addWidget(title_label)
-        
-        # Info label with operators
+
         info_label = QLabel(
             "Обозначения: * = AND, + = OR, ^ = XOR, ~^ = EQUAL, x№ = вход №"
         )
         info_label.setStyleSheet("color: gray; font-size: 10px; margin-bottom: 10px;")
         layout.addWidget(info_label)
 
-        # Content layout with tree and details
         content_layout = QHBoxLayout()
 
-        # Left panel: tree
+
         left_layout = QVBoxLayout()
         left_group = QGroupBox("Элементы схемы")
-        
+ 
         self.tree_widget = QTreeWidget()
         self.tree_widget.setHeaderLabels(["Элемент", "Тип"])
         self.tree_widget.setMaximumWidth(300)
@@ -53,19 +51,20 @@ class PolynomialDialog(QDialog):
         left_group.setLayout(left_layout)
         content_layout.addWidget(left_group)
 
-        # Right panel: details and polynomial
         right_layout = QVBoxLayout()
         right_group = QGroupBox("Полиномиальное представление")
         
+        # Метка с информацией о выбранном элементе
         self.details_label = QLabel("Выберите элемент для просмотра его полинома")
         self.details_label.setStyleSheet("color: gray;")
         self.details_label.setWordWrap(True)
         
+        # Поле для отображения полинома (только для чтения)
         self.polynomial_text = QTextEdit()
         self.polynomial_text.setReadOnly(True)
         self.polynomial_text.setFont(QFont("Courier", 10))
         
-        # Copy buttons
+        # Кнопки копирования полиномов
         copy_buttons_layout = QHBoxLayout()
         self.copy_current_button = QPushButton("Копировать текущий")
         self.copy_current_button.clicked.connect(self.copy_current_polynomial)
@@ -85,34 +84,32 @@ class PolynomialDialog(QDialog):
         content_layout.addWidget(right_group)
         
         layout.addLayout(content_layout)
-        
-        # Dialog buttons
+
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
         
         self.setLayout(layout)
     
+    # Загрузка полиномов из контроллера с проверкой ошибок
     def load_polynomials(self):
-        """Load polynomials with unified error handling."""
+
         if not self.controller or not self.circuit:
             self._show_error("Контроллер или схема не инициализированы")
             return
         
         try:
-            # Check circuit validity
+
             valid, reason = self.circuit.validate_structure()
             if not valid:
                 self._show_error(f"Невалидная схема: {reason}")
                 return
-            
-            # Check if circuit is empty
+
             nodes = self.circuit.get_nodes()
             if not nodes:
                 self._show_error("Схема пуста: нет элементов")
                 return
-            
-            # Get polynomials
+
             self.polynomials = self.controller.get_polynomials()
             self._populate_tree()
             self.copy_all_button.setEnabled(bool(self.polynomials))
@@ -122,8 +119,9 @@ class PolynomialDialog(QDialog):
         except Exception as e:
             self._show_error(f"Ошибка при загрузке полиномов: {e}")
     
+    # Отображение сообщения об ошибке в окне диалога
     def _show_error(self, message: str):
-        """Display error message and show placeholder in tree."""
+
         self.tree_widget.clear()
         error_item = QTreeWidgetItem(["Ошибка", ""])
         error_item.setStyleSheet("color: red;")
@@ -139,8 +137,9 @@ class PolynomialDialog(QDialog):
         self.copy_current_button.setEnabled(False)
         self.copy_all_button.setEnabled(False)
     
+    # Заполнение дерева элементами, сгруппированными по типам
     def _populate_tree(self):
-        """Populate tree widget with nodes grouped by type."""
+
         self.tree_widget.clear()
         
         nodes_by_type = {}
@@ -167,8 +166,9 @@ class PolynomialDialog(QDialog):
 
         self.tree_widget.expandAll()
     
+    # Обработчик выбора элемента в дереве - отображает его полином
     def on_node_selected(self):
-        """Handle node selection in tree."""
+
         selected_items = self.tree_widget.selectedItems()
         if not selected_items:
             return
@@ -199,14 +199,14 @@ class PolynomialDialog(QDialog):
         )
         self.details_label.setText(details_text)
         self.details_label.setStyleSheet("")
-        
-        # Format polynomial for display
+
         self.current_polynomial = f"f_{node_id} = {polynomial}"
         self.polynomial_text.setText(self.current_polynomial)
         self.copy_current_button.setEnabled(True)
     
+    # Копирование текущего полинома в буфер обмена
     def copy_current_polynomial(self):
-        """Copy current polynomial to clipboard."""
+
         if not self.current_polynomial:
             QMessageBox.warning(self, "Предупреждение", "Выберите элемент для копирования")
             return
@@ -218,8 +218,9 @@ class PolynomialDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось скопировать: {e}")
     
+    # Копирование всех полиномов схемы в буфер обмена
     def copy_all_polynomials(self):
-        """Copy all polynomials to clipboard."""
+
         all_text = self._get_all_polynomials_text()
         
         if not all_text:
@@ -233,8 +234,9 @@ class PolynomialDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось скопировать: {e}")
     
+    # Форматирование всех полиномов для вывода
     def _get_all_polynomials_text(self) -> str:
-        """Format all polynomials for output."""
+
         if not self.polynomials:
             return ""
         
