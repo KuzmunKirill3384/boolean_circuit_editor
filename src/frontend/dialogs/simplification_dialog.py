@@ -7,9 +7,10 @@ from PyQt6.QtCore import Qt
 import copy
 
 
+# Диалоговое окно для упрощения схемы по заданным значениям входов
 class SimplificationDialog(QDialog):
 
-    
+    # Инициализация диалога, бартонные элементы и данные для вычисления
     def __init__(self, parent=None, controller=None, circuit=None):
         super().__init__(parent)
         self.controller = controller
@@ -17,6 +18,7 @@ class SimplificationDialog(QDialog):
         self.setWindowTitle("Упрощение схемы")
         self.resize(700, 800)
 
+        # Отбор сносителяя всех элементов входа из схемы
         self.input_nodes = []
         if circuit:
             for node in circuit.get_nodes():
@@ -24,9 +26,10 @@ class SimplificationDialog(QDialog):
                     self.input_nodes.append(node)
             self.input_nodes.sort(key=lambda n: n["id"])
         
+        # Хранилище текущих значений вводов (ассоциативный массив id -> value)
         self.input_values = {}
         
-
+        # Метки для отображения количества удаляемых элементов для каждого входа
         self.removable_labels = {}
 
         self.value_combos = {}
@@ -124,6 +127,7 @@ class SimplificationDialog(QDialog):
         
         self.setLayout(layout)
     
+    # Обработчик изменения значений входов - наполняет данные и поновляет счетЧики
     def on_input_value_changed(self):
 
         for node_id, combo in self.value_combos.items():
@@ -135,8 +139,10 @@ class SimplificationDialog(QDialog):
             else:  
                 self.input_values[node_id] = 1
 
+        # Пересчитываем количества удаляемых элементов для отображения
         self.update_removable_counts()
     
+    # Обновление счетчиков удаляемых элементов как отображение в метках
     def update_removable_counts(self):
         if not self.controller or not self.circuit:
             return
@@ -144,11 +150,11 @@ class SimplificationDialog(QDialog):
         try:
             from backend.logic.truth_table import simplify
             
-            # Get removable counts for each input
+            # Получаем название элементов которые могут быть удалены для каждого входа
             removable_info = self.controller.get_removable_count_per_input()
             self.removable_info = removable_info
 
-            # Get current selected values
+            # Получаем текущие выбранные значения (только не None)
             current_values = {k: v for k, v in self.input_values.items() if v is not None}
  
             total_removable = 0
@@ -158,7 +164,7 @@ class SimplificationDialog(QDialog):
                 if node_id in removable_info:
                     info = removable_info[node_id]
                     if node_id in current_values:
-                        # Input is selected, show specific removable count
+                        # Вход настроен, показываем отдельные количества
                         val = current_values[node_id]
                         if val == 0:
                             removable_count = info.get("if_0", 0)
@@ -170,38 +176,39 @@ class SimplificationDialog(QDialog):
                         # Input not selected, show both options
                         if_0 = info.get("if_0", 0)
                         if_1 = info.get("if_1", 0)
-                        # Show in format: "0→X, 1→Y"
+                        # Отображаем в виде: "0→X, 1→Y"
                         self.removable_labels[node_id].setText(f"0→{if_0}, 1→{if_1}")
 
-            # Calculate total removable nodes
             total_nodes = len(self.circuit.get_nodes())
             
             if current_values:
                 try:
-                    # Make deep copy to safely simulate simplification
+                   
                     circuit_copy = copy.deepcopy(self.circuit)
                     simplified = simplify(circuit_copy, current_values)
                     total_removable = max(0, total_nodes - len(simplified.get_nodes()))
                 except Exception as e:
                     total_removable = 0
 
-            # Update summary labels
             self.total_nodes_label.setText(str(total_nodes))
             self.removable_nodes_label.setText(str(total_removable))
             
         except Exception as e:
-            # Silently handle errors
+
             pass
     
+    # Применение упрощения схемы - проверит значения и вызывает контроллер
     def apply_simplification(self):
-
+        # Подготавливаем только настроенные входы (если есть)
         current_values = {k: v for k, v in self.input_values.items() if v is not None}
         
+        # Проверяем что хотя бы один вход выбран
         if not current_values:
-            QMessageBox.warning(self, "Предупреждение", "Установите хотя бы одно значение входа")
+            QMessageBox.warning(self, "Предупреждение", "Остановите хотя бы одно значение входа")
             return
         
         try:
+            # Применяем упрощение через контроллер
             if self.controller:
 
                 self.controller.simplify_circuit(current_values)
