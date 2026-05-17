@@ -6,16 +6,17 @@ from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtCore import Qt
 from frontend.common.settings import SettingsManager
 
-# Диалоговое окно для управления настройками внешнего вида приложения (цвета, шрифты, размеры)
+
 class SettingsDialog(QDialog):
-    # Инициализация диалога настроек с загрузкой текущих значений из SettingsManager
+    """Диалоговое окно для настройки внешнего вида схемы: цвета элементов, линий,
+      фона, размер узлов и шрифт подписей."""
     def __init__(self, parent = None):
         super().__init__(parent)
         self.settings_manager = SettingsManager()
         self.setWindowTitle("Настройки")
         self.resize(400, 600)
 
-        # Список всех типов элементов для которых настраиваются цвета
+        
         self.node_types = ["AND", "OR", "XOR", "EQUAL", "IN", "OUT", "CONST_0", "CONST_1"]
 
         # Загрузка текущих настроек внешнего вида
@@ -26,11 +27,11 @@ class SettingsDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        # Группа настроек цветов элементов (AND, OR, XOR, EQUAL, входы, выходы, константы)
+       
         node_colors_group = QGroupBox("Цвета элементов")
         node_colors_layout = QFormLayout()
 
-        # Кнопки выбора цвета для каждого типа элемента
+       
         self.node_color_buttons = {}
         for node_type in self.node_types:
             button = QPushButton()

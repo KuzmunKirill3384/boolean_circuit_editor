@@ -7,10 +7,9 @@ from PyQt6.QtCore import Qt
 import copy
 
 
-# Диалоговое окно для упрощения схемы по заданным значениям входов
-class SimplificationDialog(QDialog):
 
-    # Инициализация диалога, бартонные элементы и данные для вычисления
+class SimplificationDialog(QDialog):
+    """Диалоговое окно для упрощения схемы на основе известных значений входов. """
     def __init__(self, parent=None, controller=None, circuit=None):
         super().__init__(parent)
         self.controller = controller
@@ -26,10 +25,9 @@ class SimplificationDialog(QDialog):
                     self.input_nodes.append(node)
             self.input_nodes.sort(key=lambda n: n["id"])
         
-        # Хранилище текущих значений вводов (ассоциативный массив id -> value)
-        self.input_values = {}
         
-        # Метки для отображения количества удаляемых элементов для каждого входа
+        self.input_values = {}
+
         self.removable_labels = {}
 
         self.value_combos = {}
@@ -139,7 +137,7 @@ class SimplificationDialog(QDialog):
             else:  
                 self.input_values[node_id] = 1
 
-        # Пересчитываем количества удаляемых элементов для отображения
+        
         self.update_removable_counts()
     
     # Обновление счетчиков удаляемых элементов как отображение в метках
@@ -159,7 +157,6 @@ class SimplificationDialog(QDialog):
  
             total_removable = 0
             
-            # Update each input label
             for node_id in sorted(self.removable_labels.keys()):
                 if node_id in removable_info:
                     info = removable_info[node_id]
@@ -173,7 +170,6 @@ class SimplificationDialog(QDialog):
                         self.removable_labels[node_id].setText(str(removable_count))
                         total_removable += removable_count
                     else:
-                        # Input not selected, show both options
                         if_0 = info.get("if_0", 0)
                         if_1 = info.get("if_1", 0)
                         # Отображаем в виде: "0→X, 1→Y"
@@ -197,12 +193,11 @@ class SimplificationDialog(QDialog):
 
             pass
     
-    # Применение упрощения схемы - проверит значения и вызывает контроллер
+    
     def apply_simplification(self):
-        # Подготавливаем только настроенные входы (если есть)
+        """Применяет упрощение схемы на основе выбранных значений входов и закрывает диалог."""
         current_values = {k: v for k, v in self.input_values.items() if v is not None}
         
-        # Проверяем что хотя бы один вход выбран
         if not current_values:
             QMessageBox.warning(self, "Предупреждение", "Остановите хотя бы одно значение входа")
             return

@@ -6,26 +6,24 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 
-# Диалоговое окно для просмотра полиномиального представления элементов схемы
 class PolynomialDialog(QDialog):
-
+    """Диалоговое окно для отображения полиномиального представления логических элементов схемы."""
     def __init__(self, parent=None, controller=None, circuit=None):
         super().__init__(parent)
         self.controller = controller
         self.circuit = circuit
         self.setWindowTitle("Полиномиальное представление")
         self.resize(800, 600)
-        
-        # Хранилище полиномов для элементов и текущего выбора
-        self.polynomials = {} #
+
+        self.polynomials = {} 
         self.selected_node_id = None
         self.current_polynomial = ""
         
         self.init_ui()
         self.load_polynomials()
     
-    # Инициализация пользовательского интерфейса диалога
     def init_ui(self):
+        """Инициализация интерфейса диалогового окна с деревом элементов и полем для полинома."""
         layout = QVBoxLayout()
         
         title_label = QLabel("Полиномиальное представление логических элементов")
@@ -40,11 +38,10 @@ class PolynomialDialog(QDialog):
 
         content_layout = QHBoxLayout()
 
-        # Левая панель: дерево элементов схемы
+
         left_layout = QVBoxLayout()
         left_group = QGroupBox("Элементы схемы")
-        
-        # Виджет дерева для отображения элементов по типам
+ 
         self.tree_widget = QTreeWidget()
         self.tree_widget.setHeaderLabels(["Элемент", "Тип"])
         self.tree_widget.setMaximumWidth(300)
@@ -54,7 +51,6 @@ class PolynomialDialog(QDialog):
         left_group.setLayout(left_layout)
         content_layout.addWidget(left_group)
 
-        # Правая панель: полиномиальное представление и детали элемента
         right_layout = QVBoxLayout()
         right_group = QGroupBox("Полиномиальное представление")
         
